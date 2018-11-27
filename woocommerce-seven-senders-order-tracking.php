@@ -30,3 +30,8 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
+
+// Define WCSSOT_PLUGIN_FILE
+if ( ! defined( 'WCSSOT_PLUGIN_FILE' ) ) {
+	define( 'WCSSOT_PLUGIN_FILE', __FILE__ );
+}
