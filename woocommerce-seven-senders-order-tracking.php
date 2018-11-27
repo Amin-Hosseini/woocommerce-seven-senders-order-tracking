@@ -3,7 +3,7 @@
  * Plugin Name:  WooCommerce Seven Senders Order Tracking
  * Plugin URI:   https://github.com/hypeventures/woocommerce-seven-senders-order-tracking
  * Description:  Interacts with the Seven Senders API to provide order tracking.
- * Version:      0.0.1-dev
+ * Version:      0.0.1
  * Author:       Kostas Stergiannis <kostas@invinciblebrands.com>
  * Author URI:   https://www.invinciblebrands.com/
  * License:      GPL3
@@ -25,6 +25,9 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * @package WCSSOT
+ * @since 0.0.1
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -34,4 +37,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Define WCSSOT_PLUGIN_FILE
 if ( ! defined( 'WCSSOT_PLUGIN_FILE' ) ) {
 	define( 'WCSSOT_PLUGIN_FILE', __FILE__ );
+}
+
+/**
+ * Hooks after WooCommerce has finished loading and initialises the main plugin class.
+ *
+ * @since 0.0.1
+ *
+ */
+add_action( 'woocommerce_loaded', 'wcssot_init' );
+
+/**
+ * Initialises the main plugin class.
+ *
+ * @since 0.0.1
+ * @return void
+ */
+function wcssot_init() {
+	// Include the main plugin class.
+	if ( ! class_exists( 'WCSSOT' ) ) {
+		include_once dirname( __FILE__ ) . '/includes/class-wcssot.php';
+	}
+	if ( empty( $_GLOBALS['WCSSOT'] ) ) {
+		$_GLOBALS['WCSSOT'] = new WCSSOT();
+	}
 }
