@@ -33,6 +33,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	private function initialise_hooks() {
+		add_action( 'plugins_loaded', [ $this, 'load_textdomain' ] );
 		if ( is_admin() ) {
 			add_action( 'admin_menu', [ $this, 'add_admin_menu' ] );
 		}
@@ -46,8 +47,8 @@ final class WCSSOT {
 	 */
 	public function add_admin_menu() {
 		add_menu_page(
-			'Seven Senders Order Tracking',
-			'Order Tracking',
+			__( 'Seven Senders Order Tracking', 'woocommerce-seven-senders-order-tracking' ),
+			__( 'Order Tracking', 'woocommerce-seven-senders-order-tracking' ),
 			'manage_options',
 			'wcssot',
 			[ $this, 'render_admin_page' ],
@@ -58,9 +59,9 @@ final class WCSSOT {
 
 	/**
 	 * Renders the admin settings page.
-     *
-     * @since 0.0.1
-     * @return void
+	 *
+	 * @since 0.0.1
+	 * @return void
 	 */
 	public function render_admin_page() {
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -71,5 +72,15 @@ final class WCSSOT {
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
         </div>
 		<?php
+	}
+
+	/**
+	 * Loads the textdomain for the plugin.
+     *
+     * @since 0.0.1
+     * @return void
+	 */
+	public function load_textdomain() {
+		load_plugin_textdomain( 'woocommerce-seven-senders-order-tracking', false, plugin_dir_url( WCSSOT_PLUGIN_FILE ) . 'languages/' );
 	}
 }
