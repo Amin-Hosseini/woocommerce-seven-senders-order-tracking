@@ -17,5 +17,22 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @class WCSSOT
  */
 final class WCSSOT {
+	/**
+	 * WCSSOT constructor.
+	 *
+	 * @since 0.0.1
+	 */
+	public function __construct() {
+		$this->initialise_hooks();
+	}
 
+	/**
+	 * Initialises the required hooks for the plugin.
+	 *
+	 * @since 0.0.1
+	 * @return void
+	 */
+	private function initialise_hooks() {
+
+	}
 }
