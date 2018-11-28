@@ -47,7 +47,7 @@ final class WCSSOT {
 	 * Initialises the required hooks for the plugin.
 	 *
 	 * @since 0.0.1
-     *
+	 *
 	 * @return void
 	 */
 	private function initialise_hooks() {
@@ -63,7 +63,7 @@ final class WCSSOT {
 	 * Adds the administration menu page.
 	 *
 	 * @since 0.0.1
-     *
+	 *
 	 * @return void
 	 */
 	public function add_admin_menu() {
@@ -82,7 +82,7 @@ final class WCSSOT {
 	 * Renders the admin settings page.
 	 *
 	 * @since 0.0.1
-     *
+	 *
 	 * @return void
 	 */
 	public function render_admin_page() {
@@ -107,7 +107,7 @@ final class WCSSOT {
 	 * Loads the textdomain for the plugin.
 	 *
 	 * @since 0.0.1
-     *
+	 *
 	 * @return void
 	 */
 	public function load_textdomain() {
@@ -122,7 +122,7 @@ final class WCSSOT {
 	 * Registers the administration settings.
 	 *
 	 * @since 0.0.1
-     *
+	 *
 	 * @return void
 	 */
 	public function register_admin_settings() {
@@ -179,7 +179,7 @@ final class WCSSOT {
 	 * Renders the API Credentials section.
 	 *
 	 * @since 0.0.1
-     *
+	 *
 	 * @return void
 	 */
 	public function render_admin_api_credentials_section() {
@@ -202,15 +202,15 @@ final class WCSSOT {
 	 * Renders the Tracking Page section.
 	 *
 	 * @since 0.0.1
-     *
+	 *
 	 * @return void
 	 */
 	public function render_admin_tracking_page_section() {
 		?>
         <p><?php esc_html_e(
-			'Enter the Seven Senders Tracking Page settings.',
-			'woocommerce-seven-senders-order-tracking'
-		); ?></p>
+				'Enter the Seven Senders Tracking Page settings.',
+				'woocommerce-seven-senders-order-tracking'
+			); ?></p>
 		<?php
 	}
 
@@ -218,7 +218,7 @@ final class WCSSOT {
 	 * Renders the API Base URL setting field.
 	 *
 	 * @since 0.0.1
-     *
+	 *
 	 * @return void
 	 */
 	public function render_admin_api_base_url_field() {
@@ -240,7 +240,7 @@ final class WCSSOT {
 	 * Renders the API Access Key setting field.
 	 *
 	 * @since 0.0.1
-     *
+	 *
 	 * @return void
 	 */
 	public function render_admin_api_access_key_field() {
@@ -262,7 +262,7 @@ final class WCSSOT {
 	 * Renders the Tracking Page Base URL setting field.
 	 *
 	 * @since 0.0.1
-     *
+	 *
 	 * @return void
 	 */
 	public function render_admin_tracking_page_base_url_field() {
