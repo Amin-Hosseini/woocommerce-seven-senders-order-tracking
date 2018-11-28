@@ -53,6 +53,7 @@ final class WCSSOT {
 		if ( is_admin() ) {
 			add_action( 'admin_menu', [ $this, 'add_admin_menu' ] );
 			add_action( 'admin_init', [ $this, 'register_admin_settings' ] );
+			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_scripts' ] );
 		}
 	}
 
@@ -153,7 +154,7 @@ final class WCSSOT {
 			]
 		] );
 		?>
-        <p><?php printf($text, 'https://sendwise.sevensenders.com/settings/shop/integrations'); ?></p>
+        <p><?php printf( $text, 'https://sendwise.sevensenders.com/settings/shop/integrations' ); ?></p>
 		<?php
 	}
 
@@ -171,5 +172,23 @@ final class WCSSOT {
                class="wcssot_form_field wcssot_form_text_field"
         >
 		<?php
+	}
+
+	/**
+     * Enqueues all necessary assets for the administration panel plugin page.
+     *
+     * @since 0.0.1
+     *
+	 * @param string $hook
+     * @return void
+	 */
+	public function enqueue_admin_scripts( $hook = '' ) {
+		if ( $hook !== 'toplevel_page_wcssot' ) {
+			return;
+		}
+		wp_enqueue_style(
+			'wcssot_admin_css',
+			plugins_url( 'admin/css/styles.css', WCSSOT_PLUGIN_FILE )
+		);
 	}
 }
