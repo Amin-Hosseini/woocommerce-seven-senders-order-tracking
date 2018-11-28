@@ -92,10 +92,11 @@ final class WCSSOT {
 		?>
         <div class="wrap">
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-            <form action="options.php" method="post">
+			<?php settings_errors( 'wcssot' ); ?>
+            <form action="options.php" method="post" id="wcssot_form">
 				<?php
 				settings_fields( 'wcssot' );
-				do_settings_sections( 'wcssot' );
+				do_settings_sections( 'wcssot_settings' );
 				submit_button( __( 'Save Settings', 'woocommerce-seven-senders-order-tracking' ) );
 				?>
             </form>
@@ -126,20 +127,26 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function register_admin_settings() {
-		register_setting( 'wcssot', 'wcssot_settings' );
+		register_setting(
+			'wcssot',
+			'wcssot_settings',
+			[
+				'sanitize_callback' => [ $this, 'sanitize_admin_settings' ]
+			]
+		);
 
 		// Add the 'API Credentials' section
 		add_settings_section(
 			'wcssot_settings_api_credentials_section',
 			__( 'API Credentials', 'woocommerce-seven-senders-order-tracking' ),
 			[ $this, 'render_admin_api_credentials_section' ],
-			'wcssot'
+			'wcssot_settings'
 		);
 		add_settings_field(
 			'wcssot_api_base_url',
 			__( 'API Base URL', 'woocommerce-seven-senders-order-tracking' ),
 			[ $this, 'render_admin_api_base_url_field' ],
-			'wcssot',
+			'wcssot_settings',
 			'wcssot_settings_api_credentials_section',
 			[
 				'label_for' => 'wcssot_api_base_url',
@@ -149,7 +156,7 @@ final class WCSSOT {
 			'wcssot_api_access_key',
 			__( 'API Access Key', 'woocommerce-seven-senders-order-tracking' ),
 			[ $this, 'render_admin_api_access_key_field' ],
-			'wcssot',
+			'wcssot_settings',
 			'wcssot_settings_api_credentials_section',
 			[
 				'label_for' => 'wcssot_api_access_key',
@@ -161,13 +168,13 @@ final class WCSSOT {
 			'wcssot_settings_tracking_page_section',
 			__( 'Tracking Page', 'woocommerce-seven-senders-order-tracking' ),
 			[ $this, 'render_admin_tracking_page_section' ],
-			'wcssot'
+			'wcssot_settings'
 		);
 		add_settings_field(
 			'wcssot_tracking_page_base_url',
 			__( 'Tracking Page Base URL', 'woocommerce-seven-senders-order-tracking' ),
 			[ $this, 'render_admin_tracking_page_base_url_field' ],
-			'wcssot',
+			'wcssot_settings',
 			'wcssot_settings_tracking_page_section',
 			[
 				'label_for' => 'wcssot_tracking_page_base_url',
@@ -297,5 +304,33 @@ final class WCSSOT {
 			'wcssot_admin_css',
 			plugins_url( 'admin/css/styles.css', WCSSOT_PLUGIN_FILE )
 		);
+		wp_enqueue_script(
+			'wcssot_admin_js',
+			plugins_url( 'admin/js/scripts.js', WCSSOT_PLUGIN_FILE )
+		);
+		wp_localize_script(
+			'wcssot_admin_js',
+			'wcssot',
+			[
+				'loading_text' => esc_attr__(
+					'Loading... Please wait.',
+					'woocommerce-seven-senders-order-tracking'
+				),
+			]
+		);
+	}
+
+	/**
+	 * Sanitize the administration settings page.
+	 *
+	 * @since 0.0.1
+     * @todo Sanitize and include form data to the array.
+	 *
+	 * @param array $input
+	 *
+	 * @return array
+	 */
+	public function sanitize_admin_settings( $input = [] ) {
+		return $input;
 	}
 }
