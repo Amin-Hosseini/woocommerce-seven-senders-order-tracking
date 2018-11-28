@@ -34,6 +34,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @class WCSSOT
  */
 final class WCSSOT {
+	/** @var array|mixed|void $options */
+	private $options = [];
+
 	/**
 	 * WCSSOT constructor.
 	 *
@@ -41,6 +44,7 @@ final class WCSSOT {
 	 */
 	public function __construct() {
 		$this->initialise_hooks();
+		$this->options = get_option( 'wcssot_settings', [] );
 	}
 
 	/**
@@ -240,6 +244,7 @@ final class WCSSOT {
                class="wcssot_form_field wcssot_form_text_field"
                placeholder="<?php echo $placeholder; ?>"
                required="required"
+               value="<?php echo( isset( $this->options['wcssot_api_base_url'] ) ? $this->options['wcssot_api_base_url'] : '' ); ?>"
         >
 		<?php
 	}
@@ -263,6 +268,7 @@ final class WCSSOT {
                class="wcssot_form_field wcssot_form_text_field"
                placeholder="<?php echo $placeholder; ?>"
                required="required"
+               value="<?php echo( isset( $this->options['wcssot_api_access_key'] ) ? $this->options['wcssot_api_access_key'] : '' ); ?>"
         >
 		<?php
 	}
@@ -286,6 +292,7 @@ final class WCSSOT {
                class="wcssot_form_field wcssot_form_text_field"
                placeholder="<?php echo $placeholder; ?>"
                required="required"
+               value="<?php echo( isset( $this->options['wcssot_tracking_page_base_url'] ) ? $this->options['wcssot_tracking_page_base_url'] : '' ); ?>"
         >
 		<?php
 	}
@@ -348,8 +355,8 @@ final class WCSSOT {
 			return $input;
 		}
 
-		$api_base_url   = trim( $_POST['wcssot_api_base_url'] );
-		$api_access_key = trim( $_POST['wcssot_api_access_key'] );
+		$api_base_url           = trim( $_POST['wcssot_api_base_url'] );
+		$api_access_key         = trim( $_POST['wcssot_api_access_key'] );
 		$tracking_page_base_url = trim( $_POST['wcssot_tracking_page_base_url'] );
 
 		if ( ! wc_is_valid_url( $api_base_url ) ) {
@@ -370,8 +377,8 @@ final class WCSSOT {
 			return $input;
 		}
 
-		$input['wcssot_api_base_url'] = $api_base_url;
-		$input['wcssot_api_access_key'] = $api_access_key;
+		$input['wcssot_api_base_url']           = $api_base_url;
+		$input['wcssot_api_access_key']         = $api_access_key;
 		$input['wcssot_tracking_page_base_url'] = $tracking_page_base_url;
 
 		add_settings_error( 'wcssot', 'wcssot_success', esc_html__(
