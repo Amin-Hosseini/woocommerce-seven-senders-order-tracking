@@ -143,6 +143,16 @@ final class WCSSOT {
 				'label_for' => 'wcssot_api_base_url',
 			]
 		);
+		add_settings_field(
+			'wcssot_api_access_key',
+			__( 'API Access Key', 'woocommerce-seven-senders-order-tracking' ),
+			[ $this, 'render_admin_api_access_key_field' ],
+			'wcssot',
+			'wcssot_settings_api_credentials_section',
+			[
+				'label_for' => 'wcssot_api_access_key',
+			]
+		);
 	}
 
 	/**
@@ -177,13 +187,35 @@ final class WCSSOT {
 	 */
 	public function render_admin_api_base_url_field() {
 		$placeholder = esc_attr__(
-			'Your 32-character long API access key...',
+			'The Seven Senders API base URL...',
 			'woocommerce-seven-senders-order-tracking'
 		);
 		?>
         <input type="text"
                name="wcssot_api_base_url"
                id="wcssot_api_base_url"
+               class="wcssot_form_field wcssot_form_text_field"
+               placeholder="<?php echo $placeholder; ?>"
+        >
+		<?php
+	}
+
+	/**
+	 * Renders the API Access Key setting field.
+	 *
+	 * @since 0.0.1
+     *
+	 * @return void
+	 */
+	public function render_admin_api_access_key_field() {
+		$placeholder = esc_attr__(
+			'Your 32-character long access key...',
+			'woocommerce-seven-senders-order-tracking'
+		);
+		?>
+        <input type="text"
+               name="wcssot_api_access_key"
+               id="wcssot_api_access_key"
                class="wcssot_form_field wcssot_form_text_field"
                placeholder="<?php echo $placeholder; ?>"
         >
