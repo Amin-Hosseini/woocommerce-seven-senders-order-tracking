@@ -30,6 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * The main plugin class WCSSOT.
  *
  * @since 0.0.1
+ *
  * @class WCSSOT
  */
 final class WCSSOT {
@@ -46,6 +47,7 @@ final class WCSSOT {
 	 * Initialises the required hooks for the plugin.
 	 *
 	 * @since 0.0.1
+     *
 	 * @return void
 	 */
 	private function initialise_hooks() {
@@ -61,6 +63,7 @@ final class WCSSOT {
 	 * Adds the administration menu page.
 	 *
 	 * @since 0.0.1
+     *
 	 * @return void
 	 */
 	public function add_admin_menu() {
@@ -79,6 +82,7 @@ final class WCSSOT {
 	 * Renders the admin settings page.
 	 *
 	 * @since 0.0.1
+     *
 	 * @return void
 	 */
 	public function render_admin_page() {
@@ -103,6 +107,7 @@ final class WCSSOT {
 	 * Loads the textdomain for the plugin.
 	 *
 	 * @since 0.0.1
+     *
 	 * @return void
 	 */
 	public function load_textdomain() {
@@ -117,6 +122,7 @@ final class WCSSOT {
 	 * Registers the administration settings.
 	 *
 	 * @since 0.0.1
+     *
 	 * @return void
 	 */
 	public function register_admin_settings() {
@@ -132,7 +138,10 @@ final class WCSSOT {
 			__( 'API Base URL', 'woocommerce-seven-senders-order-tracking' ),
 			[ $this, 'render_admin_api_base_url_field' ],
 			'wcssot',
-			'wcssot_settings_api_credentials_section'
+			'wcssot_settings_api_credentials_section',
+			[
+				'label_for' => 'wcssot_api_base_url',
+			]
 		);
 	}
 
@@ -140,6 +149,7 @@ final class WCSSOT {
 	 * Renders the API Credentials section.
 	 *
 	 * @since 0.0.1
+     *
 	 * @return void
 	 */
 	public function render_admin_api_credentials_section() {
@@ -162,25 +172,32 @@ final class WCSSOT {
 	 * Renders the API Base URL setting field.
 	 *
 	 * @since 0.0.1
+     *
 	 * @return void
 	 */
 	public function render_admin_api_base_url_field() {
+		$placeholder = esc_attr__(
+			'Your 32-character long API access key...',
+			'woocommerce-seven-senders-order-tracking'
+		);
 		?>
         <input type="text"
                name="wcssot_api_base_url"
                id="wcssot_api_base_url"
                class="wcssot_form_field wcssot_form_text_field"
+               placeholder="<?php echo $placeholder; ?>"
         >
 		<?php
 	}
 
 	/**
-     * Enqueues all necessary assets for the administration panel plugin page.
-     *
-     * @since 0.0.1
-     *
+	 * Enqueues all necessary assets for the administration panel plugin page.
+	 *
+	 * @since 0.0.1
+	 *
 	 * @param string $hook
-     * @return void
+	 *
+	 * @return void
 	 */
 	public function enqueue_admin_scripts( $hook = '' ) {
 		if ( $hook !== 'toplevel_page_wcssot' ) {
