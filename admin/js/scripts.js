@@ -44,6 +44,6 @@
      * @returns {void}
      */
     function handle_form_submission(e) {
-        $(this).find('input[type="submit"]').attr('disabled', 'disabled').val(wcssot.loading_text);
+        $(this).find('input[type="submit"]').attr('disabled', 'disabled').val(wcssot.l10n.loading_text);
     }
 })(jQuery);

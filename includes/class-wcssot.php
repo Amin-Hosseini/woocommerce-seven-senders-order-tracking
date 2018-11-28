@@ -239,6 +239,7 @@ final class WCSSOT {
                id="wcssot_api_base_url"
                class="wcssot_form_field wcssot_form_text_field"
                placeholder="<?php echo $placeholder; ?>"
+               required="required"
         >
 		<?php
 	}
@@ -261,6 +262,7 @@ final class WCSSOT {
                id="wcssot_api_access_key"
                class="wcssot_form_field wcssot_form_text_field"
                placeholder="<?php echo $placeholder; ?>"
+               required="required"
         >
 		<?php
 	}
@@ -283,6 +285,7 @@ final class WCSSOT {
                id="wcssot_tracking_page_base_url"
                class="wcssot_form_field wcssot_form_text_field"
                placeholder="<?php echo $placeholder; ?>"
+               required="required"
         >
 		<?php
 	}
@@ -312,11 +315,13 @@ final class WCSSOT {
 			'wcssot_admin_js',
 			'wcssot',
 			[
-				'loading_text' => esc_attr__(
-					'Loading... Please wait.',
-					'woocommerce-seven-senders-order-tracking'
-				),
-			]
+                'l10n' => [
+                    'loading_text' => esc_attr__(
+                        'Loading... Please wait.',
+                        'woocommerce-seven-senders-order-tracking'
+                    ),
+                ]
+            ]
 		);
 	}
 
@@ -331,6 +336,6 @@ final class WCSSOT {
 	 * @return array
 	 */
 	public function sanitize_admin_settings( $input = [] ) {
-		return $input;
+        return $input;
 	}
 }
