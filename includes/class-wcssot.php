@@ -105,7 +105,11 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function load_textdomain() {
-		load_plugin_textdomain( 'woocommerce-seven-senders-order-tracking', false, plugin_dir_url( WCSSOT_PLUGIN_FILE ) . 'languages/' );
+		load_plugin_textdomain(
+		        'woocommerce-seven-senders-order-tracking',
+                false,
+                plugin_dir_url( WCSSOT_PLUGIN_FILE ) . 'languages/'
+        );
 	}
 
 	/**
@@ -117,9 +121,9 @@ final class WCSSOT {
 	public function register_admin_settings() {
 		register_setting( 'wcssot', 'wcssot_settings' );
 		add_settings_section(
-		        'wcssot_settings_api_section',
+		        'wcssot_settings_api_credentials_section',
                 __('API Credentials', 'woocommerce-seven-senders-order-tracking'),
-                [ $this, 'render_admin_api_section' ],
+                [ $this, 'render_admin_api_credentials_section' ],
                 'wcssot'
         );
 		add_settings_field(
@@ -127,20 +131,23 @@ final class WCSSOT {
                 __('API Base URL', 'woocommerce-seven-senders-order-tracking'),
                 [ $this, 'render_admin_api_base_url_field' ],
             'wcssot',
-            'wcssot_settings_api_section'
+            'wcssot_settings_api_credentials_section'
         );
 	}
 
 	/**
 	 * Renders the API Credentials section.
      *
-     * @todo Render helpful text describing the section settings.
-     *
      * @since 0.0.1
      * @return void
 	 */
-	public function render_admin_api_section() {
-
+	public function render_admin_api_credentials_section() {
+        ?>
+        <p><?php printf(__(
+                'Enter your assigned API credentials <a href="%s" target="_blank">from the Seven Senders dashboard</a>.',
+                'woocommerce-seven-senders-order-tracking'
+            ), 'https://sendwise.sevensenders.com/settings/shop/integrations'); ?></p>
+        <?php
     }
 
 	/**
