@@ -163,6 +163,16 @@ final class WCSSOT {
 			[ $this, 'render_admin_tracking_page_section' ],
 			'wcssot'
 		);
+		add_settings_field(
+			'wcssot_tracking_page_base_url',
+			__( 'Tracking Page Base URL', 'woocommerce-seven-senders-order-tracking' ),
+			[ $this, 'render_admin_tracking_page_base_url_field' ],
+			'wcssot',
+			'wcssot_settings_tracking_page_section',
+			[
+				'label_for' => 'wcssot_tracking_page_base_url',
+			]
+		);
 	}
 
 	/**
@@ -242,6 +252,28 @@ final class WCSSOT {
         <input type="text"
                name="wcssot_api_access_key"
                id="wcssot_api_access_key"
+               class="wcssot_form_field wcssot_form_text_field"
+               placeholder="<?php echo $placeholder; ?>"
+        >
+		<?php
+	}
+
+	/**
+	 * Renders the Tracking Page Base URL setting field.
+	 *
+	 * @since 0.0.1
+     *
+	 * @return void
+	 */
+	public function render_admin_tracking_page_base_url_field() {
+		$placeholder = esc_attr__(
+			'The tracking page base URL...',
+			'woocommerce-seven-senders-order-tracking'
+		);
+		?>
+        <input type="text"
+               name="wcssot_tracking_page_base_url"
+               id="wcssot_tracking_page_base_url"
                class="wcssot_form_field wcssot_form_text_field"
                placeholder="<?php echo $placeholder; ?>"
         >
