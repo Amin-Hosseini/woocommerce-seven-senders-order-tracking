@@ -1,2 +1,30 @@
+# Editors
+project.xml
+project.properties
+/nbproject/private/
+.buildpath
+.project
+.settings*
 .idea
+.vscode
+*.sublime-project
+*.sublime-workspace
+.sublimelinterrc
+
+# Grunt and NPM
+/node_modules/
+none
+
+# Sass
+.sass-cache/
+
+# System Metadata
 .DS_Store
+Thumbs.db
+
+# Logs
+/logs
+
+# Composer
+/vendor/
+contributors.md
