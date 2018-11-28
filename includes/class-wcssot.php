@@ -127,6 +127,8 @@ final class WCSSOT {
 	 */
 	public function register_admin_settings() {
 		register_setting( 'wcssot', 'wcssot_settings' );
+
+		// Add the 'API Credentials' section
 		add_settings_section(
 			'wcssot_settings_api_credentials_section',
 			__( 'API Credentials', 'woocommerce-seven-senders-order-tracking' ),
@@ -153,6 +155,14 @@ final class WCSSOT {
 				'label_for' => 'wcssot_api_access_key',
 			]
 		);
+
+		// Add the 'Tracking Page' section
+		add_settings_section(
+			'wcssot_settings_tracking_page_section',
+			__( 'Tracking Page', 'woocommerce-seven-senders-order-tracking' ),
+			[ $this, 'render_admin_tracking_page_section' ],
+			'wcssot'
+		);
 	}
 
 	/**
@@ -175,6 +185,22 @@ final class WCSSOT {
 		] );
 		?>
         <p><?php printf( $text, 'https://sendwise.sevensenders.com/settings/shop/integrations' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Renders the Tracking Page section.
+	 *
+	 * @since 0.0.1
+     *
+	 * @return void
+	 */
+	public function render_admin_tracking_page_section() {
+		?>
+        <p><?php esc_html_e(
+			'Enter the Seven Senders Tracking Page settings.',
+			'woocommerce-seven-senders-order-tracking'
+		); ?></p>
 		<?php
 	}
 
