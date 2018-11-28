@@ -315,13 +315,13 @@ final class WCSSOT {
 			'wcssot_admin_js',
 			'wcssot',
 			[
-                'l10n' => [
-                    'loading_text' => esc_attr__(
-                        'Loading... Please wait.',
-                        'woocommerce-seven-senders-order-tracking'
-                    ),
-                ]
-            ]
+				'l10n' => [
+					'loading_text' => esc_attr__(
+						'Loading... Please wait.',
+						'woocommerce-seven-senders-order-tracking'
+					),
+				],
+			]
 		);
 	}
 
@@ -329,13 +329,56 @@ final class WCSSOT {
 	 * Sanitize the administration settings page.
 	 *
 	 * @since 0.0.1
-     * @todo Sanitize and include form data to the array.
 	 *
 	 * @param array $input
 	 *
 	 * @return array
 	 */
 	public function sanitize_admin_settings( $input = [] ) {
-        return $input;
+		if (
+			empty( $_POST['wcssot_api_base_url'] ) ||
+			empty( $_POST['wcssot_api_access_key'] ) ||
+			empty( $_POST['wcssot_tracking_page_base_url'] )
+		) {
+			add_settings_error( 'wcssot', 'wcssot_error', esc_html__(
+				'One of the form fields is missing!',
+				'woocommerce-seven-senders-order-tracking'
+			) );
+
+			return $input;
+		}
+
+		$api_base_url   = trim( $_POST['wcssot_api_base_url'] );
+		$api_access_key = trim( $_POST['wcssot_api_access_key'] );
+		$tracking_page_base_url = trim( $_POST['wcssot_tracking_page_base_url'] );
+
+		if ( ! wc_is_valid_url( $api_base_url ) ) {
+			add_settings_error( 'wcssot', 'wcssot_error', sprintf( esc_html__(
+				'The field "%s" contains an invalid URL.',
+				'woocommerce-seven-senders-order-tracking'
+			), 'API Base URL' ) );
+
+			return $input;
+		}
+
+		if ( ! wc_is_valid_url( $tracking_page_base_url ) ) {
+			add_settings_error( 'wcssot', 'wcssot_error', sprintf( esc_html__(
+				'The field "%s" contains an invalid URL.',
+				'woocommerce-seven-senders-order-tracking'
+			), 'Tracking Page Base URL' ) );
+
+			return $input;
+		}
+
+		$input['wcssot_api_base_url'] = $api_base_url;
+		$input['wcssot_api_access_key'] = $api_access_key;
+		$input['wcssot_tracking_page_base_url'] = $tracking_page_base_url;
+
+		add_settings_error( 'wcssot', 'wcssot_success', esc_html__(
+			'The settings have been saved successfully!',
+			'woocommerce-seven-senders-order-tracking'
+		), 'updated' );
+
+		return $input;
 	}
 }
