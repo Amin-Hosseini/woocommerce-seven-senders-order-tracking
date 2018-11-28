@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-(function($){
+(function ($) {
     /**
      * Run the initialisation script when the document is ready.
      */
@@ -28,6 +28,11 @@
      * @returns {void}
      */
     function init() {
+        if (!wcssot) {
+            console.error('ERROR: The localization object "wcssot" is missing!');
+            return;
+        }
+
         $('#wcssot_form').on('submit', handle_form_submission);
     }
 
