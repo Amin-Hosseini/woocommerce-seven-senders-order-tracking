@@ -34,8 +34,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @class WCSSOT
  */
 final class WCSSOT {
-	/** @var array|mixed|void $options */
+	/** @var array $options */
 	private $options = [];
+
+	/** @var array $options_required */
+	private $options_required = [
+		'wcssot_api_base_url',
+		'wcssot_api_access_key',
+		'wcssot_tracking_page_base_url',
+	];
 
 	/**
 	 * WCSSOT constructor.
@@ -43,8 +50,8 @@ final class WCSSOT {
 	 * @since 0.0.1
 	 */
 	public function __construct() {
-		$this->initialise_hooks();
 		$this->options = get_option( 'wcssot_settings', [] );
+		$this->initialise_hooks();
 	}
 
 	/**
@@ -61,6 +68,26 @@ final class WCSSOT {
 			add_action( 'admin_init', [ $this, 'register_admin_settings' ] );
 			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_scripts' ] );
 		}
+		if ( ! $this->settings_exist() ) {
+			return;
+		}
+	}
+
+	/**
+     * Returns whether the required settings have been set.
+     *
+     * @since 0.1.0
+     *
+	 * @return bool
+	 */
+	private function settings_exist() {
+		foreach ( $this->options_required as $option_required ) {
+			if ( empty( $this->options[ $option_required ] ) ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**
@@ -93,9 +120,20 @@ final class WCSSOT {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
+		$description = __(
+			'Interacts with the <a href="%s" target="_blank">Seven Senders API</a> to provide order tracking functionality to your WooCommerce shop.',
+			'woocommerce-seven-senders-order-tracking'
+		);
+		$description = wp_kses( $description, [
+			'a' => [
+				'href'   => [],
+				'target' => [],
+			]
+		] );
 		?>
         <div class="wrap">
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+            <p><?php printf( $description, 'https://api.sevensenders.com/v2/docs.html' ); ?></p>
 			<?php settings_errors( 'wcssot' ); ?>
             <form action="options.php" method="post" id="wcssot_form">
 				<?php
