@@ -43,9 +43,15 @@ if ( ! defined( 'WCSSOT_PLUGIN_FILE' ) ) {
  * Hooks after WooCommerce has finished loading and initialises the main plugin class.
  *
  * @since 0.0.1
- *
  */
 add_action( 'woocommerce_loaded', 'wcssot_init' );
+
+/**
+ * Registers the activation hook to run after the plugin has been activated.
+ *
+ * @since 0.1.0
+ */
+register_activation_hook( __FILE__, 'wcssot_install' );
 
 /**
  * Initialises the main plugin class.
@@ -61,4 +67,17 @@ function wcssot_init() {
 	if ( empty( $_GLOBALS['WCSSOT'] ) ) {
 		$_GLOBALS['WCSSOT'] = new WCSSOT();
 	}
+}
+
+/**
+ * Provisions the plugin settings by adding the defaults to the option.
+ *
+ * @since 0.1.0
+ * @return void
+ */
+function wcssot_install() {
+	// Adds the default settings to the option.
+	add_option( 'wcssot_settings', [
+		'wcssot_api_base_url' => 'https://analytics-api.7senders.com/v2/'
+	] );
 }
