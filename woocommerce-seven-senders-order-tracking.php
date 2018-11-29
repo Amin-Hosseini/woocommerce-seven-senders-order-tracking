@@ -57,6 +57,7 @@ register_activation_hook( __FILE__, 'wcssot_install' );
  * Initialises the main plugin class.
  *
  * @since 0.0.1
+ *
  * @return void
  */
 function wcssot_init() {
@@ -73,6 +74,7 @@ function wcssot_init() {
  * Provisions the plugin settings by adding the defaults to the option.
  *
  * @since 0.1.0
+ *
  * @return void
  */
 function wcssot_install() {
