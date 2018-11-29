@@ -120,9 +120,20 @@ final class WCSSOT {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
+		$description = __(
+			'Interacts with the <a href="%s" target="_blank">Seven Senders API</a> to provide order tracking functionality to your WooCommerce shop.',
+			'woocommerce-seven-senders-order-tracking'
+		);
+		$description = wp_kses( $description, [
+			'a' => [
+				'href'   => [],
+				'target' => [],
+			]
+		] );
 		?>
         <div class="wrap">
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+            <p><?php printf( $description, 'https://api.sevensenders.com/v2/docs.html' ); ?></p>
 			<?php settings_errors( 'wcssot' ); ?>
             <form action="options.php" method="post" id="wcssot_form">
 				<?php
