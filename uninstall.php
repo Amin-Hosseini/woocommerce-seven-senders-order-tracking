@@ -24,3 +24,9 @@
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit; // Exit if not called by Wordpress.
 }
+
+/**
+ * Delete only the option set for the plugin settings.
+ * All postmeta data will stay for future use and backwards compatibility.
+ */
+delete_option('wcssot_settings');
