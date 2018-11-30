@@ -42,6 +42,21 @@ class WCSSOT_Logger {
 	];
 
 	/**
+	 * Uses the main logging method to log a debug message.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $message
+	 *
+	 * @return void
+	 */
+	public static function debug( $message ) {
+		if ( apply_filters( 'wcssot_debug_logging_enabled', false ) ) {
+			self::log( 'debug', $message );
+		}
+	}
+
+	/**
 	 * Logs the provided message with the provided type.
 	 *
 	 * @since 0.2.0
@@ -52,22 +67,9 @@ class WCSSOT_Logger {
 	 * @return void
 	 */
 	public static function log( $type, $message ) {
-		if ( isset( self::$supported_types[ $type ] ) ) {
+		if ( isset( self::$supported_types[ $type ] ) && apply_filters( 'wcssot_logging_enabled', true ) ) {
 			error_log( '[WCSSOT] ' . self::$supported_types[ $type ] . ': ' . (string) $message );
 		}
-	}
-
-	/**
-	 * Uses the main logging method to log a debug message.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @param string $message
-	 *
-	 * @return void
-	 */
-	public static function debug($message) {
-		self::log('debug', $message);
 	}
 
 	/**
@@ -79,8 +81,10 @@ class WCSSOT_Logger {
 	 *
 	 * @return void
 	 */
-	public static function error($message) {
-		self::log('error', $message);
+	public static function error( $message ) {
+		if ( apply_filters( 'wcssot_error_logging_enabled', true ) ) {
+			self::log( 'error', $message );
+		}
 	}
 
 	/**
@@ -92,7 +96,9 @@ class WCSSOT_Logger {
 	 *
 	 * @return void
 	 */
-	public static function warning($message) {
-		self::log('warning', $message);
+	public static function warning( $message ) {
+		if ( apply_filters( 'wcssot_warning_logging_enabled', true ) ) {
+			self::log( 'warning', $message );
+		}
 	}
 }
