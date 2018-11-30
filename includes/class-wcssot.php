@@ -50,6 +50,7 @@ final class WCSSOT {
 	 * @since 0.0.1
 	 */
 	public function __construct() {
+		WCSSOT_Logger::debug( 'Initialising the main WCSSOT plugin class.' );
 		$this->options = get_option( 'wcssot_settings', [] );
 		$this->initialise_hooks();
 	}
@@ -62,8 +63,10 @@ final class WCSSOT {
 	 * @return void
 	 */
 	private function initialise_hooks() {
+		WCSSOT_Logger::debug( 'Initialising hooks for the WCSSOT main class.' );
 		add_action( 'plugins_loaded', [ $this, 'load_textdomain' ] );
 		if ( is_admin() ) {
+			WCSSOT_Logger::debug( 'Initialising hooks for the administration panel.' );
 			add_action( 'admin_menu', [ $this, 'add_admin_menu' ] );
 			add_action( 'admin_init', [ $this, 'register_admin_settings' ] );
 			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_scripts' ] );
@@ -81,8 +84,11 @@ final class WCSSOT {
 	 * @return bool
 	 */
 	private function settings_exist() {
+		WCSSOT_Logger::debug( 'Checking if all required settings exist.' );
 		foreach ( $this->options_required as $option_required ) {
 			if ( empty( $this->options[ $option_required ] ) ) {
+				WCSSOT_Logger::error( "The setting '$option_required' is missing from the options!" );
+
 				return false;
 			}
 		}
@@ -98,6 +104,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function add_admin_menu() {
+		WCSSOT_Logger::debug( 'Adding the main administration menu item for the plugin.' );
 		add_menu_page(
 			__( 'Seven Senders Order Tracking', 'woocommerce-seven-senders-order-tracking' ),
 			__( 'Order Tracking', 'woocommerce-seven-senders-order-tracking' ),
@@ -117,7 +124,10 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function render_admin_page() {
+		WCSSOT_Logger::debug( 'Rendering the administration panel settings page.' );
 		if ( ! current_user_can( 'manage_options' ) ) {
+			WCSSOT_Logger::debug( "User #" . get_current_user_id() . " (current) cannot view administration page." );
+
 			return;
 		}
 		$description = __(
@@ -154,6 +164,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function load_textdomain() {
+		WCSSOT_Logger::debug( "Loading the 'woocommerce-seven-senders-order-tracking' text domain." );
 		load_plugin_textdomain(
 			'woocommerce-seven-senders-order-tracking',
 			false,
@@ -169,6 +180,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function register_admin_settings() {
+		WCSSOT_Logger::debug( "Registering the administration settings and adding all sections and fields." );
 		register_setting(
 			'wcssot',
 			'wcssot_settings',
@@ -232,6 +244,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function render_admin_api_credentials_section() {
+		WCSSOT_Logger::debug( "Rendering the 'API Credentials' section subtitle." );
 		$text = __(
 			'Enter your assigned API credentials <a href="%s" target="_blank">from the Seven Senders dashboard</a>.',
 			'woocommerce-seven-senders-order-tracking'
@@ -255,6 +268,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function render_admin_tracking_page_section() {
+		WCSSOT_Logger::debug( "Rendering the 'Tracking Page' section subtitle." );
 		?>
         <p><?php esc_html_e(
 				'Enter the Seven Senders Tracking Page settings.',
@@ -271,6 +285,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function render_admin_api_base_url_field() {
+		WCSSOT_Logger::debug( "Rendering the 'API Base URL' field." );
 		$placeholder = esc_attr__(
 			'The Seven Senders API base URL...',
 			'woocommerce-seven-senders-order-tracking'
@@ -296,6 +311,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function render_admin_api_access_key_field() {
+		WCSSOT_Logger::debug( "Rendering the 'API Access Key' field." );
 		$placeholder = esc_attr__(
 			'Your 32-character long access key...',
 			'woocommerce-seven-senders-order-tracking'
@@ -320,6 +336,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function render_admin_tracking_page_base_url_field() {
+		WCSSOT_Logger::debug( "Rendering the 'Tracking Page Base URL' field." );
 		$placeholder = esc_attr__(
 			'The tracking page base URL...',
 			'woocommerce-seven-senders-order-tracking'
@@ -350,6 +367,7 @@ final class WCSSOT {
 		if ( $hook !== 'toplevel_page_wcssot' ) {
 			return;
 		}
+		WCSSOT_Logger::debug( "Enqueueing all necessary scripts and styles for the administration panel page." );
 		wp_enqueue_style(
 			'wcssot_admin_css',
 			plugins_url( 'admin/css/styles.css', WCSSOT_PLUGIN_FILE )
@@ -382,6 +400,7 @@ final class WCSSOT {
 	 * @return array
 	 */
 	public function sanitize_admin_settings( $input = [] ) {
+		WCSSOT_Logger::debug( "Sanitising the settings input." );
 		if (
 			empty( $_POST['wcssot_api_base_url'] ) ||
 			empty( $_POST['wcssot_api_access_key'] ) ||
@@ -391,6 +410,7 @@ final class WCSSOT {
 				'One of the form fields is missing!',
 				'woocommerce-seven-senders-order-tracking'
 			) );
+			WCSSOT_Logger::error( "One of the fields is missing." );
 
 			return $input;
 		}
@@ -404,6 +424,7 @@ final class WCSSOT {
 				'The field "%s" contains an invalid URL.',
 				'woocommerce-seven-senders-order-tracking'
 			), 'API Base URL' ) );
+			WCSSOT_Logger::error( "The 'API Base URL' field is invalid." );
 
 			return $input;
 		}
@@ -413,6 +434,7 @@ final class WCSSOT {
 				'The field "%s" contains an invalid URL.',
 				'woocommerce-seven-senders-order-tracking'
 			), 'Tracking Page Base URL' ) );
+			WCSSOT_Logger::error( "The 'Tracking Page Base URL' field is invalid." );
 
 			return $input;
 		}

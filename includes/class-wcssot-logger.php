@@ -67,8 +67,13 @@ class WCSSOT_Logger {
 	 * @return void
 	 */
 	public static function log( $type, $message ) {
+		$backtrace = debug_backtrace();
+		$suffix    = '';
+		if ( ! empty( $backtrace[1] ) ) {
+			$suffix = ' (' . $backtrace[1]['file'] . ':' . $backtrace[1]['line'] . ')';
+		}
 		if ( isset( self::$supported_types[ $type ] ) && apply_filters( 'wcssot_logging_enabled', true ) ) {
-			error_log( '[WCSSOT] ' . self::$supported_types[ $type ] . ': ' . (string) $message );
+			error_log( '[WCSSOT] ' . self::$supported_types[ $type ] . ': ' . (string) $message . $suffix );
 		}
 	}
 
