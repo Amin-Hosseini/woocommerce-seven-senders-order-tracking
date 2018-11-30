@@ -283,7 +283,7 @@ final class WCSSOT {
                placeholder="<?php echo $placeholder; ?>"
                required="required"
                value="<?php echo( isset( $this->options['wcssot_api_base_url'] ) ? $this->options['wcssot_api_base_url'] : '' ); ?>"
-        >
+        > <span class="wcssot_helper_text">/&lt;<?php esc_html_e('API Endpoint', 'woocommerce-seven-senders-order-tracking'); ?>&gt;</span>
 		<?php
 	}
 
@@ -331,7 +331,7 @@ final class WCSSOT {
                placeholder="<?php echo $placeholder; ?>"
                required="required"
                value="<?php echo( isset( $this->options['wcssot_tracking_page_base_url'] ) ? $this->options['wcssot_tracking_page_base_url'] : '' ); ?>"
-        >
+        > <span class="wcssot_helper_text">/&lt;<?php esc_html_e('Order Number', 'woocommerce-seven-senders-order-tracking'); ?>&gt;</span>
 		<?php
 	}
 
