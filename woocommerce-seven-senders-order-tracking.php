@@ -61,10 +61,15 @@ register_activation_hook( __FILE__, 'wcssot_install' );
  * @return void
  */
 function wcssot_init() {
+	// Include the custom logger class.
+	if ( ! class_exists( 'WCSSOT_Logger' ) ) {
+		include_once dirname( __FILE__ ) . '/includes/class-wcssot-logger.php';
+	}
 	// Include the main plugin class.
 	if ( ! class_exists( 'WCSSOT' ) ) {
 		include_once dirname( __FILE__ ) . '/includes/class-wcssot.php';
 	}
+
 	if ( empty( $_GLOBALS['WCSSOT'] ) ) {
 		$_GLOBALS['WCSSOT'] = new WCSSOT();
 	}

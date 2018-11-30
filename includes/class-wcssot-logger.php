@@ -34,5 +34,65 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @class WCSSOT_Logger
  */
 class WCSSOT_Logger {
-	
+	/** @var array $supported_types */
+	private static $supported_types = [
+		'debug'   => 'DEBUG',
+		'error'   => 'ERROR',
+		'warning' => 'WARNING',
+	];
+
+	/**
+	 * Logs the provided message with the provided type.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $type
+	 * @param string $message
+	 *
+	 * @return void
+	 */
+	public static function log( $type, $message ) {
+		if ( isset( self::$supported_types[ $type ] ) ) {
+			error_log( '[WCSSOT] ' . self::$supported_types[ $type ] . ': ' . (string) $message );
+		}
+	}
+
+	/**
+	 * Uses the main logging method to log a debug message.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $message
+	 *
+	 * @return void
+	 */
+	public static function debug($message) {
+		self::log('debug', $message);
+	}
+
+	/**
+	 * Uses the main logging method to log an error message.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $message
+	 *
+	 * @return void
+	 */
+	public static function error($message) {
+		self::log('error', $message);
+	}
+
+	/**
+	 * Uses the main logging method to log a warning message.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $message
+	 *
+	 * @return void
+	 */
+	public static function warning($message) {
+		self::log('warning', $message);
+	}
 }
