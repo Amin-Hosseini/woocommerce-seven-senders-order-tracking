@@ -74,10 +74,10 @@ final class WCSSOT {
 	}
 
 	/**
-     * Returns whether the required settings have been set.
-     *
-     * @since 0.1.0
-     *
+	 * Returns whether the required settings have been set.
+	 *
+	 * @since 0.1.0
+	 *
 	 * @return bool
 	 */
 	private function settings_exist() {
@@ -283,7 +283,8 @@ final class WCSSOT {
                placeholder="<?php echo $placeholder; ?>"
                required="required"
                value="<?php echo( isset( $this->options['wcssot_api_base_url'] ) ? $this->options['wcssot_api_base_url'] : '' ); ?>"
-        > <span class="wcssot_helper_text">/&lt;<?php esc_html_e('API Endpoint', 'woocommerce-seven-senders-order-tracking'); ?>&gt;</span>
+        >
+        <span class="wcssot_helper_text">/&lt;<?php esc_html_e( 'API Endpoint', 'woocommerce-seven-senders-order-tracking' ); ?>&gt;</span>
 		<?php
 	}
 
@@ -331,7 +332,8 @@ final class WCSSOT {
                placeholder="<?php echo $placeholder; ?>"
                required="required"
                value="<?php echo( isset( $this->options['wcssot_tracking_page_base_url'] ) ? $this->options['wcssot_tracking_page_base_url'] : '' ); ?>"
-        > <span class="wcssot_helper_text">/&lt;<?php esc_html_e('Order Number', 'woocommerce-seven-senders-order-tracking'); ?>&gt;</span>
+        >
+        <span class="wcssot_helper_text">/&lt;<?php esc_html_e( 'Order Number', 'woocommerce-seven-senders-order-tracking' ); ?>&gt;</span>
 		<?php
 	}
 
@@ -393,9 +395,9 @@ final class WCSSOT {
 			return $input;
 		}
 
-		$api_base_url           = trim( $_POST['wcssot_api_base_url'] );
+		$api_base_url           = rtrim( trim( $_POST['wcssot_api_base_url'] ), '/' );
 		$api_access_key         = trim( $_POST['wcssot_api_access_key'] );
-		$tracking_page_base_url = trim( $_POST['wcssot_tracking_page_base_url'] );
+		$tracking_page_base_url = rtrim( trim( $_POST['wcssot_tracking_page_base_url'] ), '/' );
 
 		if ( ! wc_is_valid_url( $api_base_url ) ) {
 			add_settings_error( 'wcssot', 'wcssot_error', sprintf( esc_html__(
