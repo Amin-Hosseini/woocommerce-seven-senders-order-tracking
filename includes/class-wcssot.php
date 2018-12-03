@@ -389,7 +389,7 @@ final class WCSSOT {
 	public function render_admin_api_access_key_field() {
 		WCSSOT_Logger::debug( "Rendering the 'API Access Key' field." );
 		$placeholder = esc_attr__(
-			'Your 32-character long access key...',
+			'Your provided access key...',
 			'woocommerce-seven-senders-order-tracking'
 		);
 		?>
@@ -589,30 +589,6 @@ final class WCSSOT {
 	}
 
 	/**
-	 * Returns the options required property.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @return array
-	 */
-	public function getOptionsRequired() {
-		return $this->options_required;
-	}
-
-	/**
-	 * Sets the options required property.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @param array $options_required
-	 *
-	 * @return void
-	 */
-	public function setOptionsRequired( $options_required ) {
-		$this->options_required = $options_required;
-	}
-
-	/**
 	 * Returns the API manager instance.
 	 *
 	 * @since 0.2.0
@@ -634,5 +610,29 @@ final class WCSSOT {
 	 */
 	public function setApi( $api ) {
 		$this->api = $api;
+	}
+
+	/**
+	 * Returns the options required property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return array
+	 */
+	public function getOptionsRequired() {
+		return $this->options_required;
+	}
+
+	/**
+	 * Sets the options required property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param array $options_required
+	 *
+	 * @return void
+	 */
+	public function setOptionsRequired( $options_required ) {
+		$this->options_required = $options_required;
 	}
 }
