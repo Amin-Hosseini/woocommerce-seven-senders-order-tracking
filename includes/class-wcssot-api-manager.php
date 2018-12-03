@@ -34,12 +34,71 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @class WCSSOT_API_Manager
  */
 class WCSSOT_API_Manager {
+
+	/** @var string $api_base_url */
+	private $api_base_url;
+
+	/** @var string $api_access_key */
+	private $api_access_key;
+
 	/**
 	 * WCSSOT_API_Manager constructor.
 	 *
 	 * @since 0.2.0
+	 *
+	 * @param string $api_base_url
+	 * @param string $api_access_key
 	 */
-	public function __construct() {
-		/** @todo Initialise properties. */
+	public function __construct( $api_base_url, $api_access_key ) {
+		$this->setApiBaseUrl( $api_base_url );
+		$this->setApiAccessKey( $api_access_key );
+	}
+
+	/**
+	 * Returns the API base URL property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return string
+	 */
+	public function getApiBaseUrl() {
+		return $this->api_base_url;
+	}
+
+	/**
+	 * Sets the API base URL property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $api_base_url
+	 *
+	 * @return void
+	 */
+	public function setApiBaseUrl( $api_base_url ) {
+		$this->api_base_url = $api_base_url;
+	}
+
+	/**
+	 * Returns the API access key property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return string
+	 */
+	public function getApiAccessKey() {
+		return $this->api_access_key;
+	}
+
+	/**
+	 * Sets the API access key property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $api_access_key
+	 *
+	 * @return void
+	 */
+	public function setApiAccessKey( $api_access_key ) {
+		$this->api_access_key = $api_access_key;
 	}
 }
