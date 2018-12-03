@@ -22,6 +22,8 @@
  * @since 0.2.0
  */
 
+namespace WCSSOT;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }

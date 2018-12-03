@@ -22,6 +22,13 @@
  * @since 0.0.1
  */
 
+namespace WCSSOT;
+
+use DateTime;
+use DateTimeZone;
+use Exception;
+use WC_Order;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
@@ -47,6 +54,9 @@ final class WCSSOT {
 	/** @var DateTimeZone $timezone */
 	private $timezone;
 
+	/** @var WCSSOT_API_Manager $api */
+	private $api;
+
 	/**
 	 * WCSSOT constructor.
 	 *
@@ -66,7 +76,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	private function initialise_properties() {
-		$this->options = get_option( 'wcssot_settings', [] );
+		$this->setOptions( get_option( 'wcssot_settings', [] ) );
 		try {
 			$this->setTimezone( new DateTimeZone( wc_timezone_string() ) );
 		} catch ( Exception $exception ) {
@@ -74,6 +84,50 @@ final class WCSSOT {
 
 			return;
 		}
+		$this->setApi( new WCSSOT_API_Manager(
+			$this->getOption( 'wcssot_api_base_url' ),
+			$this->getOption( 'wcssot_api_access_key' )
+		) );
+	}
+
+	/**
+	 * Returns the specifies option key from the options property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $option
+	 * @param null $default
+	 *
+	 * @return mixed|null
+	 */
+	public function getOption( $option, $default = null ) {
+		$options = $this->getOptions();
+
+		return isset( $options[ $option ] ) ? $options[ $option ] : $default;
+	}
+
+	/**
+	 * Returns the options property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return array
+	 */
+	public function getOptions() {
+		return $this->options;
+	}
+
+	/**
+	 * Sets the options property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param array $options
+	 *
+	 * @return void
+	 */
+	public function setOptions( $options ) {
+		$this->options = $options;
 	}
 
 	/**
@@ -535,45 +589,6 @@ final class WCSSOT {
 	}
 
 	/**
-	 * Returns the specifies option key from the options property.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @param string $option
-	 *
-	 * @return mixed|null
-	 */
-	public function getOption( $option ) {
-		$options = $this->getOptions();
-
-		return isset( $options[ $option ] ) ? $options[ $option ] : null;
-	}
-
-	/**
-	 * Returns the options property.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @return array
-	 */
-	public function getOptions() {
-		return $this->options;
-	}
-
-	/**
-	 * Sets the options property.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @param array $options
-	 *
-	 * @return void
-	 */
-	public function setOptions( $options ) {
-		$this->options = $options;
-	}
-
-	/**
 	 * Returns the options required property.
 	 *
 	 * @since 0.2.0
@@ -595,5 +610,29 @@ final class WCSSOT {
 	 */
 	public function setOptionsRequired( $options_required ) {
 		$this->options_required = $options_required;
+	}
+
+	/**
+	 * Returns the API manager instance.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return WCSSOT_API_Manager
+	 */
+	public function getApi() {
+		return $this->api;
+	}
+
+	/**
+	 * Sets the API manager instance.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param WCSSOT_API_Manager $api
+	 *
+	 * @return void
+	 */
+	public function setApi( $api ) {
+		$this->api = $api;
 	}
 }

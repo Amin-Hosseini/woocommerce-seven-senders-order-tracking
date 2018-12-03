@@ -30,9 +30,16 @@
  * @since 0.0.1
  */
 
+use WCSSOT\WCSSOT;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
+
+/**
+ * Require the project autoloader.
+ */
+require_once( 'autoload.php' );
 
 // Define WCSSOT_PLUGIN_FILE
 if ( ! defined( 'WCSSOT_PLUGIN_FILE' ) ) {
@@ -61,13 +68,10 @@ register_activation_hook( __FILE__, 'wcssot_install' );
  * @return void
  */
 function wcssot_init() {
-	// Include the custom logger class.
-	if ( ! class_exists( 'WCSSOT_Logger' ) ) {
-		include_once dirname( __FILE__ ) . '/includes/class-wcssot-logger.php';
-	}
-	// Include the main plugin class.
-	if ( ! class_exists( 'WCSSOT' ) ) {
-		include_once dirname( __FILE__ ) . '/includes/class-wcssot.php';
+	try {
+		spl_autoload_register( 'wcssot_autoloader' );
+	} catch ( Exception $exception ) {
+		error_log( '[WCSSOT] ERROR: Could not register project autoloader.' );
 	}
 
 	if ( empty( $_GLOBALS['WCSSOT'] ) ) {

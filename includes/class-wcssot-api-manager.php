@@ -22,6 +22,10 @@
  * @since 0.2.0
  */
 
+namespace WCSSOT;
+
+use Exception;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
@@ -52,6 +56,22 @@ class WCSSOT_API_Manager {
 	public function __construct( $api_base_url, $api_access_key ) {
 		$this->setApiBaseUrl( $api_base_url );
 		$this->setApiAccessKey( $api_access_key );
+		try {
+			$this->authenticate();
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not authenticate to the Seven Senders API at "' . $this->getApiBaseUrl() . '" with access key "' . $this->getApiAccessKey() . '".' );
+		}
+	}
+
+	/**
+	 * Authenticates the app to the Seven Senders API.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return void
+	 */
+	private function authenticate() {
+		WCSSOT_Logger::debug( 'Authenticating the app to the Seven Senders API.' );
 	}
 
 	/**
