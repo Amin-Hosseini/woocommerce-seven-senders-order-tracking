@@ -44,6 +44,9 @@ final class WCSSOT {
 		'wcssot_tracking_page_base_url',
 	];
 
+	/** @var DateTimeZone $timezone */
+	private $timezone;
+
 	/**
 	 * WCSSOT constructor.
 	 *
@@ -51,8 +54,26 @@ final class WCSSOT {
 	 */
 	public function __construct() {
 		WCSSOT_Logger::debug( 'Initialising the main WCSSOT plugin class.' );
-		$this->options = get_option( 'wcssot_settings', [] );
+		$this->initialise_properties();
 		$this->initialise_hooks();
+	}
+
+	/**
+	 * Initialises the class properties.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return void
+	 */
+	private function initialise_properties() {
+		$this->options = get_option( 'wcssot_settings', [] );
+		try {
+			$this->setTimezone( new DateTimeZone( wc_timezone_string() ) );
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not instantiate shop timezone for "' . wc_timezone_string() . '".' );
+
+			return;
+		}
 	}
 
 	/**
@@ -74,6 +95,7 @@ final class WCSSOT {
 		if ( ! $this->settings_exist() ) {
 			return;
 		}
+		add_action( 'woocommerce_order_status_processing', [ $this, 'export_order' ], 10, 2 );
 	}
 
 	/**
@@ -449,5 +471,129 @@ final class WCSSOT {
 		), 'updated' );
 
 		return $input;
+	}
+
+	/**
+	 * Exports the order data to Seven Senders.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param int $order_id
+	 * @param WC_Order $order
+	 *
+	 * @return bool
+	 */
+	public function export_order( $order_id, $order ) {
+		if ( ! $order->needs_processing() || ! empty( $order->get_meta( 'wcssot_order_exported' ) ) ) {
+			WCSSOT_Logger::debug( 'Order #' . $order_id . ' does not need to be exported.' );
+
+			return false;
+		}
+		try {
+			$order_date_created = new DateTime( $order->get_date_created(), $this->getTimezone() );
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not instantiate date object for order #' . $order_id . ' with date "' . $order->get_date_created() . '".' );
+
+			return false;
+		}
+		$order_data = [
+			'shop_order_id'   => $order->get_order_number(),
+			'shop_order_date' => $order_date_created->format( 'c' ),
+			'shop_order_url'  => get_site_url(),
+		];
+
+		/**
+		 * @todo Implement order exporting request, set locking and informative meta data,
+		 *       and set order state to 'in_production'.
+		 */
+
+		return true;
+	}
+
+	/**
+	 * Returns the timezone property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return DateTimeZone
+	 */
+	public function getTimezone() {
+		return $this->timezone;
+	}
+
+	/**
+	 * Sets the timezone property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param DateTimeZone $timezone
+	 *
+	 * @return void
+	 */
+	public function setTimezone( $timezone ) {
+		$this->timezone = $timezone;
+	}
+
+	/**
+	 * Returns the specifies option key from the options property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $option
+	 *
+	 * @return mixed|null
+	 */
+	public function getOption( $option ) {
+		$options = $this->getOptions();
+
+		return isset( $options[ $option ] ) ? $options[ $option ] : null;
+	}
+
+	/**
+	 * Returns the options property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return array
+	 */
+	public function getOptions() {
+		return $this->options;
+	}
+
+	/**
+	 * Sets the options property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param array $options
+	 *
+	 * @return void
+	 */
+	public function setOptions( $options ) {
+		$this->options = $options;
+	}
+
+	/**
+	 * Returns the options required property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return array
+	 */
+	public function getOptionsRequired() {
+		return $this->options_required;
+	}
+
+	/**
+	 * Sets the options required property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param array $options_required
+	 *
+	 * @return void
+	 */
+	public function setOptionsRequired( $options_required ) {
+		$this->options_required = $options_required;
 	}
 }
