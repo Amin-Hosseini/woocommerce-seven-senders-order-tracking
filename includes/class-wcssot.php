@@ -22,6 +22,13 @@
  * @since 0.0.1
  */
 
+namespace WCSSOT;
+
+use DateTime;
+use DateTimeZone;
+use Exception;
+use WC_Order;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
@@ -44,14 +51,83 @@ final class WCSSOT {
 		'wcssot_tracking_page_base_url',
 	];
 
+	/** @var DateTimeZone $timezone */
+	private $timezone;
+
+	/** @var WCSSOT_API_Manager $api */
+	private $api;
+
 	/**
 	 * WCSSOT constructor.
 	 *
 	 * @since 0.0.1
 	 */
 	public function __construct() {
-		$this->options = get_option( 'wcssot_settings', [] );
+		WCSSOT_Logger::debug( 'Initialising the main WCSSOT plugin class.' );
+		$this->initialise_properties();
 		$this->initialise_hooks();
+	}
+
+	/**
+	 * Initialises the class properties.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return void
+	 */
+	private function initialise_properties() {
+		$this->setOptions( get_option( 'wcssot_settings', [] ) );
+		try {
+			$this->setTimezone( new DateTimeZone( wc_timezone_string() ) );
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not instantiate shop timezone for "' . wc_timezone_string() . '".' );
+
+			return;
+		}
+		$this->setApi( new WCSSOT_API_Manager(
+			$this->getOption( 'wcssot_api_base_url' ),
+			$this->getOption( 'wcssot_api_access_key' )
+		) );
+	}
+
+	/**
+	 * Returns the specifies option key from the options property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $option
+	 * @param null $default
+	 *
+	 * @return mixed|null
+	 */
+	public function getOption( $option, $default = null ) {
+		$options = $this->getOptions();
+
+		return isset( $options[ $option ] ) ? $options[ $option ] : $default;
+	}
+
+	/**
+	 * Returns the options property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return array
+	 */
+	public function getOptions() {
+		return $this->options;
+	}
+
+	/**
+	 * Sets the options property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param array $options
+	 *
+	 * @return void
+	 */
+	public function setOptions( $options ) {
+		$this->options = $options;
 	}
 
 	/**
@@ -62,8 +138,10 @@ final class WCSSOT {
 	 * @return void
 	 */
 	private function initialise_hooks() {
+		WCSSOT_Logger::debug( 'Initialising hooks for the WCSSOT main class.' );
 		add_action( 'plugins_loaded', [ $this, 'load_textdomain' ] );
 		if ( is_admin() ) {
+			WCSSOT_Logger::debug( 'Initialising hooks for the administration panel.' );
 			add_action( 'admin_menu', [ $this, 'add_admin_menu' ] );
 			add_action( 'admin_init', [ $this, 'register_admin_settings' ] );
 			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_scripts' ] );
@@ -71,18 +149,22 @@ final class WCSSOT {
 		if ( ! $this->settings_exist() ) {
 			return;
 		}
+		add_action( 'woocommerce_order_status_processing', [ $this, 'export_order' ], 10, 2 );
 	}
 
 	/**
-     * Returns whether the required settings have been set.
-     *
-     * @since 0.1.0
-     *
+	 * Returns whether the required settings have been set.
+	 *
+	 * @since 0.1.0
+	 *
 	 * @return bool
 	 */
 	private function settings_exist() {
+		WCSSOT_Logger::debug( 'Checking if all required settings exist.' );
 		foreach ( $this->options_required as $option_required ) {
 			if ( empty( $this->options[ $option_required ] ) ) {
+				WCSSOT_Logger::error( "The setting '$option_required' is missing from the options!" );
+
 				return false;
 			}
 		}
@@ -98,6 +180,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function add_admin_menu() {
+		WCSSOT_Logger::debug( 'Adding the main administration menu item for the plugin.' );
 		add_menu_page(
 			__( 'Seven Senders Order Tracking', 'woocommerce-seven-senders-order-tracking' ),
 			__( 'Order Tracking', 'woocommerce-seven-senders-order-tracking' ),
@@ -117,7 +200,10 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function render_admin_page() {
+		WCSSOT_Logger::debug( 'Rendering the administration panel settings page.' );
 		if ( ! current_user_can( 'manage_options' ) ) {
+			WCSSOT_Logger::debug( "User #" . get_current_user_id() . " (current) cannot view administration page." );
+
 			return;
 		}
 		$description = __(
@@ -154,6 +240,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function load_textdomain() {
+		WCSSOT_Logger::debug( "Loading the 'woocommerce-seven-senders-order-tracking' text domain." );
 		load_plugin_textdomain(
 			'woocommerce-seven-senders-order-tracking',
 			false,
@@ -169,6 +256,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function register_admin_settings() {
+		WCSSOT_Logger::debug( "Registering the administration settings and adding all sections and fields." );
 		register_setting(
 			'wcssot',
 			'wcssot_settings',
@@ -232,6 +320,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function render_admin_api_credentials_section() {
+		WCSSOT_Logger::debug( "Rendering the 'API Credentials' section subtitle." );
 		$text = __(
 			'Enter your assigned API credentials <a href="%s" target="_blank">from the Seven Senders dashboard</a>.',
 			'woocommerce-seven-senders-order-tracking'
@@ -255,6 +344,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function render_admin_tracking_page_section() {
+		WCSSOT_Logger::debug( "Rendering the 'Tracking Page' section subtitle." );
 		?>
         <p><?php esc_html_e(
 				'Enter the Seven Senders Tracking Page settings.',
@@ -271,6 +361,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function render_admin_api_base_url_field() {
+		WCSSOT_Logger::debug( "Rendering the 'API Base URL' field." );
 		$placeholder = esc_attr__(
 			'The Seven Senders API base URL...',
 			'woocommerce-seven-senders-order-tracking'
@@ -284,6 +375,7 @@ final class WCSSOT {
                required="required"
                value="<?php echo( isset( $this->options['wcssot_api_base_url'] ) ? $this->options['wcssot_api_base_url'] : '' ); ?>"
         >
+        <span class="wcssot_helper_text">/&lt;<?php esc_html_e( 'API Endpoint', 'woocommerce-seven-senders-order-tracking' ); ?>&gt;</span>
 		<?php
 	}
 
@@ -295,8 +387,9 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function render_admin_api_access_key_field() {
+		WCSSOT_Logger::debug( "Rendering the 'API Access Key' field." );
 		$placeholder = esc_attr__(
-			'Your 32-character long access key...',
+			'Your provided access key...',
 			'woocommerce-seven-senders-order-tracking'
 		);
 		?>
@@ -319,6 +412,7 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function render_admin_tracking_page_base_url_field() {
+		WCSSOT_Logger::debug( "Rendering the 'Tracking Page Base URL' field." );
 		$placeholder = esc_attr__(
 			'The tracking page base URL...',
 			'woocommerce-seven-senders-order-tracking'
@@ -332,6 +426,7 @@ final class WCSSOT {
                required="required"
                value="<?php echo( isset( $this->options['wcssot_tracking_page_base_url'] ) ? $this->options['wcssot_tracking_page_base_url'] : '' ); ?>"
         >
+        <span class="wcssot_helper_text">/&lt;<?php esc_html_e( 'Order Number', 'woocommerce-seven-senders-order-tracking' ); ?>&gt;</span>
 		<?php
 	}
 
@@ -348,6 +443,7 @@ final class WCSSOT {
 		if ( $hook !== 'toplevel_page_wcssot' ) {
 			return;
 		}
+		WCSSOT_Logger::debug( "Enqueueing all necessary scripts and styles for the administration panel page." );
 		wp_enqueue_style(
 			'wcssot_admin_css',
 			plugins_url( 'admin/css/styles.css', WCSSOT_PLUGIN_FILE )
@@ -380,6 +476,7 @@ final class WCSSOT {
 	 * @return array
 	 */
 	public function sanitize_admin_settings( $input = [] ) {
+		WCSSOT_Logger::debug( "Sanitising the settings input." );
 		if (
 			empty( $_POST['wcssot_api_base_url'] ) ||
 			empty( $_POST['wcssot_api_access_key'] ) ||
@@ -389,19 +486,21 @@ final class WCSSOT {
 				'One of the form fields is missing!',
 				'woocommerce-seven-senders-order-tracking'
 			) );
+			WCSSOT_Logger::error( "One of the fields is missing." );
 
 			return $input;
 		}
 
-		$api_base_url           = trim( $_POST['wcssot_api_base_url'] );
+		$api_base_url           = rtrim( trim( $_POST['wcssot_api_base_url'] ), '/' );
 		$api_access_key         = trim( $_POST['wcssot_api_access_key'] );
-		$tracking_page_base_url = trim( $_POST['wcssot_tracking_page_base_url'] );
+		$tracking_page_base_url = rtrim( trim( $_POST['wcssot_tracking_page_base_url'] ), '/' );
 
 		if ( ! wc_is_valid_url( $api_base_url ) ) {
 			add_settings_error( 'wcssot', 'wcssot_error', sprintf( esc_html__(
 				'The field "%s" contains an invalid URL.',
 				'woocommerce-seven-senders-order-tracking'
 			), 'API Base URL' ) );
+			WCSSOT_Logger::error( "The 'API Base URL' field is invalid." );
 
 			return $input;
 		}
@@ -411,6 +510,7 @@ final class WCSSOT {
 				'The field "%s" contains an invalid URL.',
 				'woocommerce-seven-senders-order-tracking'
 			), 'Tracking Page Base URL' ) );
+			WCSSOT_Logger::error( "The 'Tracking Page Base URL' field is invalid." );
 
 			return $input;
 		}
@@ -425,5 +525,144 @@ final class WCSSOT {
 		), 'updated' );
 
 		return $input;
+	}
+
+	/**
+	 * Exports the order data to Seven Senders.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param int $order_id
+	 * @param WC_Order $order
+	 *
+	 * @return bool
+	 */
+	public function export_order( $order_id, $order ) {
+		if ( ! $order->needs_processing() || ! empty( $order->get_meta( 'wcssot_order_exported' ) ) ) {
+			WCSSOT_Logger::debug( 'Order #' . $order_id . ' does not need to be exported.' );
+
+			return false;
+		}
+		try {
+			$order_date_created = new DateTime( $order->get_date_created(), $this->getTimezone() );
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not instantiate date object for order #' . $order_id . ' with date "' . $order->get_date_created() . '".' );
+
+			return false;
+		}
+		$order_data = [
+			'order_id'   => $order->get_order_number(),
+			'order_url'  => get_site_url(),
+			'order_date' => $order_date_created->format( 'c' ),
+		];
+
+		/**
+		 * @todo Implement set locking and informative meta data,
+		 *       and set order state to 'in_production'.
+		 */
+		if ( ! $this->getApi()->createOrder( $order_data ) ) {
+			return false;
+		}
+
+		update_post_meta( $order_id, 'wcssot_order_exported', true );
+		update_post_meta( $order_id, 'wcssot_order_tracking_link', $this->get_tracking_link( $order->get_order_number() ) );
+
+		if ( ! $this->getApi()->setOrderState( $order, 'in_production' ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Returns the timezone property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return DateTimeZone
+	 */
+	public function getTimezone() {
+		return $this->timezone;
+	}
+
+	/**
+	 * Sets the timezone property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param DateTimeZone $timezone
+	 *
+	 * @return void
+	 */
+	public function setTimezone( $timezone ) {
+		$this->timezone = $timezone;
+	}
+
+	/**
+	 * Returns the API manager instance.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return WCSSOT_API_Manager
+	 */
+	public function getApi() {
+		return $this->api;
+	}
+
+	/**
+	 * Sets the API manager instance.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param WCSSOT_API_Manager $api
+	 *
+	 * @return void
+	 */
+	public function setApi( $api ) {
+		$this->api = $api;
+	}
+
+	/**
+	 * Returns the tracking link for the provided order.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $order_number
+	 *
+	 * @return string
+	 */
+	private function get_tracking_link( $order_number ) {
+		$link = '';
+
+		$base_url = $this->getOption( 'wcssot_tracking_page_base_url', '' );
+		if ( ! empty( $base_url ) && ! empty( $order_number ) ) {
+			$link = $base_url . '/' . $order_number;
+		}
+
+		return $link;
+	}
+
+	/**
+	 * Returns the options required property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return array
+	 */
+	public function getOptionsRequired() {
+		return $this->options_required;
+	}
+
+	/**
+	 * Sets the options required property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param array $options_required
+	 *
+	 * @return void
+	 */
+	public function setOptionsRequired( $options_required ) {
+		$this->options_required = $options_required;
 	}
 }

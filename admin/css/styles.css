@@ -20,3 +20,8 @@
     padding: 5px 10px;
     min-width: 300px;
 }
+
+.wcssot_helper_text {
+    font-size: 12px;
+    color: #666;
+}
