@@ -310,7 +310,7 @@ class WCSSOT_API_Manager {
 			$response = $this->request( [
 				'order_id' => $order->get_order_number(),
 				'state'    => $state,
-				'datetime' => current_time('c'),
+				'datetime' => current_time( 'c' ),
 			], 'order_states', 'POST' );
 		} catch ( Exception $exception ) {
 			WCSSOT_Logger::error( 'Could not set state for order #' . $order->get_id() . '.' );
