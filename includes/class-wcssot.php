@@ -551,15 +551,18 @@ final class WCSSOT {
 			return false;
 		}
 		$order_data = [
-			'shop_order_id'   => $order->get_order_number(),
-			'shop_order_date' => $order_date_created->format( 'c' ),
-			'shop_order_url'  => get_site_url(),
+			'order_id'   => $order->get_order_number(),
+			'order_url'  => get_site_url(),
+			'order_date' => $order_date_created->format( 'c' ),
 		];
 
 		/**
-		 * @todo Implement order exporting request, set locking and informative meta data,
+		 * @todo Implement set locking and informative meta data,
 		 *       and set order state to 'in_production'.
 		 */
+        if (! $this->getApi()->createOrder($order_data)) {
+			return false;
+        }
 
 		return true;
 	}

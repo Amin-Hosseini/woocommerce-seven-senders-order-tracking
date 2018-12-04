@@ -103,7 +103,7 @@ class WCSSOT_API_Manager {
 		$response = wp_safe_remote_request( $this->getEndpointUrl( $endpoint, $params ), [
 			'method'     => $method,
 			'headers'    => $headers,
-			'body'       => $data,
+			'body'       => json_encode( $data ),
 			'timeout'    => 10,
 			'blocking'   => true,
 			'user-agent' => 'WooCommerce ' . WC()->version . '; ' . get_site_url(),
@@ -118,7 +118,7 @@ class WCSSOT_API_Manager {
 
 		$response_code = wp_remote_retrieve_response_code( $response );
 
-		if ( $response_code === 401 && self::$recursion_lock ++ < 6 ) {
+		if ( $response_code === 401 && self::$recursion_lock ++ < 5 ) {
 			WCSSOT_Logger::debug( 'Attempting to authenticate with the Seven Senders API. (Try #' . self::$recursion_lock . ')' );
 
 			$this->authenticate();
@@ -126,7 +126,7 @@ class WCSSOT_API_Manager {
 			return $this->request( $data, $endpoint, $method );
 		}
 
-		if ( $response_code !== 200 ) {
+		if ( $response_code < 200 || $response_code > 299 ) {
 			WCSSOT_Logger::error( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
 			throw new Exception( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
 		}
@@ -229,21 +229,21 @@ class WCSSOT_API_Manager {
 	private function authenticate() {
 		WCSSOT_Logger::debug( 'Authenticating the app to the Seven Senders API.' );
 		try {
-			$response = $this->request( json_encode( [
+			$response = $this->request( [
 				'access_key' => $this->getApiAccessKey()
-			] ), 'token', 'POST' );
+			], 'token', 'POST' );
 		} catch ( Exception $exception ) {
 			WCSSOT_Logger::error( 'Could not authenticate app with access key "' . $this->getApiAccessKey() . '".' );
 
 			return;
 		}
 		if ( empty( $response['body'] ) ) {
-			WCSSOT_Logger::error('The body of the authentication response is missing!');
+			WCSSOT_Logger::error( 'The body of the authentication response is missing!' );
 			throw new Exception( "The body of the authentication response is missing!" );
 		}
 		$body = json_decode( $response['body'], true );
 		if ( empty( $body['token'] ) ) {
-			WCSSOT_Logger::error('The token is missing from the authentication response!');
+			WCSSOT_Logger::error( 'The token is missing from the authentication response!' );
 			throw new Exception( "The token is missing from the authentication response!" );
 		}
 		$this->setAuthorizationBearer( $body['token'] );
@@ -271,5 +271,26 @@ class WCSSOT_API_Manager {
 	 */
 	public function setApiAccessKey( $api_access_key ) {
 		$this->api_access_key = $api_access_key;
+	}
+
+	/**
+	 * Creates a new order entry in Seven Senders.
+	 *
+	 * @param array $data
+	 *
+	 * @return bool
+	 */
+	public function createOrder( $data ) {
+		WCSSOT_Logger::debug( 'Creating a new order entry for order #' . $data['order_id'] . '.' );
+		try {
+			$response = $this->request( $data, 'orders', 'POST' );
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not create order entry of order #' . $data['order_id'] . '.' );
+
+			return false;
+		}
+		WCSSOT_Logger::debug( 'Successfully created the order and received the following response: ' . $response['body'] );
+
+		return true;
 	}
 }

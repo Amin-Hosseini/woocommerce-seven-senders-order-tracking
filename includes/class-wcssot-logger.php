@@ -39,8 +39,8 @@ class WCSSOT_Logger {
 	/** @var array $supported_types */
 	private static $supported_types = [
 		'debug'   => 'DEBUG',
-		'error'   => 'ERROR',
-		'warning' => 'WARNING',
+		'error'   => '<ERROR>',
+		'warning' => '(WARNING)',
 	];
 
 	/**
