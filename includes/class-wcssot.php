@@ -553,7 +553,7 @@ final class WCSSOT {
 
 		/**
 		 * @todo Check if carrier is valid for exporting, check if there is a tracking code set, export the shipment
-		 *       to Seven Senders and set order meta flags accordingly.
+		 *       to Seven Senders, set the order state to 'in_preparation' and set order meta flags accordingly.
 		 */
 
 		return true;
