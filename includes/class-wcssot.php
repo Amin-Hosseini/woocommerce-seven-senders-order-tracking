@@ -564,6 +564,9 @@ final class WCSSOT {
 			return false;
         }
 
+        update_post_meta($order_id, 'wcssot_order_exported', true);
+        update_post_meta($order_id, 'wcssot_order_tracking_link', $this->get_tracking_link($order->get_order_number()));
+
 		return true;
 	}
 
@@ -637,5 +640,25 @@ final class WCSSOT {
 	 */
 	public function setOptionsRequired( $options_required ) {
 		$this->options_required = $options_required;
+	}
+
+	/**
+     * Returns the tracking link for the provided order.
+     *
+     * @since 0.2.0
+     *
+	 * @param string $order_number
+	 *
+	 * @return string
+	 */
+	private function get_tracking_link( $order_number ) {
+        $link = '';
+
+        $base_url = $this->getOption('wcssot_tracking_page_base_url', '');
+        if (! empty($base_url) && ! empty($order_number)) {
+            $link = $base_url . '/' . $order_number;
+        }
+
+        return $link;
 	}
 }
