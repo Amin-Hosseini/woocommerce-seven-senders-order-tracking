@@ -150,6 +150,7 @@ final class WCSSOT {
 			return;
 		}
 		add_action( 'woocommerce_order_status_processing', [ $this, 'export_order' ], 10, 2 );
+		add_action( 'woocommerce_order_status_completed', [ $this, 'export_shipment' ], 10, 2 );
 	}
 
 	/**
@@ -528,6 +529,37 @@ final class WCSSOT {
 	}
 
 	/**
+	 * Exports the shipment to Seven Senders for the provided order.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param int $order_id
+	 * @param \WC_Order $order
+	 *
+	 * @return bool
+	 */
+	public function export_shipment( $order_id, $order ) {
+		WCSSOT_Logger::debug( 'Exporting shipment for order #' . $order_id . '.' );
+
+		if ( ! empty( $order->get_meta( 'wcssot_shipment_exported' ) ) ) {
+			WCSSOT_Logger::debug( 'Shipment for order #' . $order_id . ' does not need to be exported.' );
+
+			return true;
+		}
+
+		if ( ! $this->export_order( $order_id, $order ) ) {
+			return false;
+		}
+
+		/**
+		 * @todo Check if carrier is valid for exporting, check if there is a tracking code set, export the shipment
+		 *       to Seven Senders and set order meta flags accordingly.
+		 */
+
+		return true;
+	}
+
+	/**
 	 * Exports the order data to Seven Senders.
 	 *
 	 * @since 0.2.0
@@ -541,7 +573,7 @@ final class WCSSOT {
 		if ( ! $order->needs_processing() || ! empty( $order->get_meta( 'wcssot_order_exported' ) ) ) {
 			WCSSOT_Logger::debug( 'Order #' . $order_id . ' does not need to be exported.' );
 
-			return false;
+			return true;
 		}
 		try {
 			$order_date_created = new DateTime( $order->get_date_created(), $this->getTimezone() );
@@ -556,10 +588,6 @@ final class WCSSOT {
 			'order_date' => $order_date_created->format( 'c' ),
 		];
 
-		/**
-		 * @todo Implement set locking and informative meta data,
-		 *       and set order state to 'in_production'.
-		 */
 		if ( ! $this->getApi()->createOrder( $order_data ) ) {
 			return false;
 		}
