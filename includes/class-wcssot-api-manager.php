@@ -293,4 +293,32 @@ class WCSSOT_API_Manager {
 
 		return true;
 	}
+
+	/**
+	 * Sets the order state in Seven Senders.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param \WC_Order $order
+	 * @param string $state
+	 *
+	 * @return bool
+	 */
+	public function setOrderState( $order, $state ) {
+		WCSSOT_Logger::debug( 'Setting order state to "' . $state . '" for order #' . $order->get_id() . '.' );
+		try {
+			$response = $this->request( [
+				'order_id' => $order->get_order_number(),
+				'state'    => $state,
+				'datetime' => current_time('c'),
+			], 'order_states', 'POST' );
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not set state for order #' . $order->get_id() . '.' );
+
+			return false;
+		}
+		WCSSOT_Logger::debug( 'Successfully set the order state to "' . $state . '" and received the following response: ' . $response['body'] );
+
+		return true;
+	}
 }

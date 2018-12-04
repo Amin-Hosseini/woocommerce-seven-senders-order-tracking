@@ -567,6 +567,10 @@ final class WCSSOT {
         update_post_meta($order_id, 'wcssot_order_exported', true);
         update_post_meta($order_id, 'wcssot_order_tracking_link', $this->get_tracking_link($order->get_order_number()));
 
+        if (! $this->getApi()->setOrderState($order, 'in_production')) {
+            return false;
+        }
+
 		return true;
 	}
 
