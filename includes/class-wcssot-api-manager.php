@@ -42,6 +42,12 @@ class WCSSOT_API_Manager {
 	/** @var int $recursion_lock */
 	private static $recursion_lock = 0;
 
+	/** @var array $supported_carriers */
+	private static $supported_carriers;
+
+	/** @var bool $authenticated */
+	private static $authenticated = false;
+
 	/** @var string $api_base_url */
 	private $api_base_url;
 
@@ -90,48 +96,101 @@ class WCSSOT_API_Manager {
 	 * @param string $endpoint
 	 * @param string $method
 	 * @param array $params
+	 * @param bool $authenticate
 	 *
 	 * @return array
 	 * @throws Exception
 	 */
-	private function request( $data, $endpoint, $method, $params = [] ) {
+	private function request( $data, $endpoint, $method, $params = [], $authenticate = true ) {
 		WCSSOT_Logger::debug( 'Initialising request to the API for the "' . $endpoint . '" endpoint.' );
-		$headers = array_merge( [
+		if ( $authenticate && ! self::$authenticated ) {
+			$this->authenticate();
+		}
+		$headers  = array_merge( [
 			'Content-Type' => 'application/json'
 		], $this->get_authorization_headers() );
-
 		$response = wp_safe_remote_request( $this->get_endpoint_url( $endpoint, $params ), [
 			'method'     => $method,
 			'headers'    => $headers,
-			'body'       => json_encode( $data ),
+			'body'       => ! empty( $data ) ? json_encode( $data ) : '',
 			'timeout'    => 10,
 			'blocking'   => true,
 			'user-agent' => 'WooCommerce ' . WC()->version . '; ' . get_site_url(),
 		] );
-
 		WCSSOT_Logger::debug( 'Sent request to the "' . $endpoint . '" endpoint.' );
-
 		if ( is_wp_error( $response ) ) {
 			WCSSOT_Logger::error( 'The request to the "' . $endpoint . '" endpoint resulted in an error.' );
 			throw new Exception( $response->get_error_message() );
 		}
-
 		$response_code = wp_remote_retrieve_response_code( $response );
-
 		if ( $response_code === 401 && self::$recursion_lock ++ < 5 ) {
 			WCSSOT_Logger::debug( 'Attempting to authenticate with the Seven Senders API. (Try #' . self::$recursion_lock . ')' );
-
 			$this->authenticate();
 
 			return $this->request( $data, $endpoint, $method );
 		}
-
 		if ( $response_code < 200 || $response_code > 299 ) {
 			WCSSOT_Logger::error( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
 			throw new Exception( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
 		}
 
 		return $response;
+	}
+
+	/**
+	 * Authenticates the app to the Seven Senders API.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return void
+	 * @throws Exception
+	 */
+	private function authenticate() {
+		WCSSOT_Logger::debug( 'Authenticating the app to the Seven Senders API.' );
+		try {
+			$response = $this->request( [
+				'access_key' => $this->get_api_access_key()
+			], 'token', 'POST', [], false );
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not authenticate app with access key "' . $this->get_api_access_key() . '".' );
+
+			return;
+		}
+		if ( empty( $response['body'] ) ) {
+			WCSSOT_Logger::error( 'The body of the authentication response is missing!' );
+			throw new Exception( "The body of the authentication response is missing!" );
+		}
+		$body = json_decode( $response['body'], true );
+		if ( empty( $body['token'] ) ) {
+			WCSSOT_Logger::error( 'The token is missing from the authentication response!' );
+			throw new Exception( "The token is missing from the authentication response!" );
+		}
+		$this->set_authorization_bearer( $body['token'] );
+		self::$authenticated = true;
+	}
+
+	/**
+	 * Returns the API access key property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return string
+	 */
+	public function get_api_access_key() {
+		return $this->api_access_key;
+	}
+
+	/**
+	 * Sets the API access key property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $api_access_key
+	 *
+	 * @return void
+	 */
+	public function set_api_access_key( $api_access_key ) {
+		$this->api_access_key = $api_access_key;
 	}
 
 	/**
@@ -219,61 +278,6 @@ class WCSSOT_API_Manager {
 	}
 
 	/**
-	 * Authenticates the app to the Seven Senders API.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @return void
-	 * @throws Exception
-	 */
-	private function authenticate() {
-		WCSSOT_Logger::debug( 'Authenticating the app to the Seven Senders API.' );
-		try {
-			$response = $this->request( [
-				'access_key' => $this->get_api_access_key()
-			], 'token', 'POST' );
-		} catch ( Exception $exception ) {
-			WCSSOT_Logger::error( 'Could not authenticate app with access key "' . $this->get_api_access_key() . '".' );
-
-			return;
-		}
-		if ( empty( $response['body'] ) ) {
-			WCSSOT_Logger::error( 'The body of the authentication response is missing!' );
-			throw new Exception( "The body of the authentication response is missing!" );
-		}
-		$body = json_decode( $response['body'], true );
-		if ( empty( $body['token'] ) ) {
-			WCSSOT_Logger::error( 'The token is missing from the authentication response!' );
-			throw new Exception( "The token is missing from the authentication response!" );
-		}
-		$this->set_authorization_bearer( $body['token'] );
-	}
-
-	/**
-	 * Returns the API access key property.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @return string
-	 */
-	public function get_api_access_key() {
-		return $this->api_access_key;
-	}
-
-	/**
-	 * Sets the API access key property.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @param string $api_access_key
-	 *
-	 * @return void
-	 */
-	public function set_api_access_key( $api_access_key ) {
-		$this->api_access_key = $api_access_key;
-	}
-
-	/**
 	 * Creates a new order entry in Seven Senders.
 	 *
 	 * @param array $data
@@ -320,5 +324,38 @@ class WCSSOT_API_Manager {
 		WCSSOT_Logger::debug( 'Successfully set the order state to "' . $state . '" and received the following response: ' . $response['body'] );
 
 		return true;
+	}
+
+	/**
+	 * Returns the Seven Senders supported carriers list.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @return array
+	 */
+	public function get_supported_carriers() {
+		WCSSOT_Logger::debug( 'Trying to get supported carriers.' );
+		if ( ! empty( self::$supported_carriers ) ) {
+			WCSSOT_Logger::debug( 'Returning already fetched supported carriers.' );
+
+			return self::$supported_carriers;
+		}
+		WCSSOT_Logger::debug( 'Trying to fetch supported carriers from Seven Senders.' );
+		$carriers = [];
+		try {
+			$response = $this->request( [], 'carriers', 'GET' );
+			if ( empty( $response['body'] ) ) {
+				throw new Exception( 'Response body is empty.' );
+			}
+			$body = json_decode( $response['body'], true );
+			if ( empty( $body ) ) {
+				throw new Exception( 'Body contents are empty.' );
+			}
+			$carriers = $body;
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not fetch supported carriers from Seven Senders.' );
+		}
+
+		return self::$supported_carriers = $carriers;
 	}
 }

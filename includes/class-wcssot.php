@@ -728,7 +728,7 @@ final class WCSSOT {
 	 *
 	 * @return array
 	 */
-	public function getOptionsRequired() {
+	public function get_options_required() {
 		return $this->options_required;
 	}
 
@@ -741,7 +741,7 @@ final class WCSSOT {
 	 *
 	 * @return void
 	 */
-	public function setOptionsRequired( $options_required ) {
+	public function set_options_required( $options_required ) {
 		$this->options_required = $options_required;
 	}
 }
