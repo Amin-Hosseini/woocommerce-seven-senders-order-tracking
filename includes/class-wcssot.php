@@ -769,7 +769,6 @@ final class WCSSOT {
 	 */
 	private function is_carrier_valid( $carrier, $order ) {
 		$supported_carriers = $this->get_api()->get_supported_carriers();
-		$carrier            = str_replace( [ '-', ' ' ], '_', strtolower( $carrier ) );
 		if ( ! isset( $supported_carriers[ $carrier ] ) ) {
 			return false;
 		}
