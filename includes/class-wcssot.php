@@ -549,9 +549,6 @@ final class WCSSOT {
 		if ( ! $this->export_order( $order_id, $order ) ) {
 			return false;
 		}
-		/**
-		 * @todo Set the order state to 'in_preparation' and set order meta flags accordingly.
-		 */
 		if ( ! $this->is_order_valid_for_shipment( $order ) ) {
 			return false;
 		}
@@ -584,6 +581,10 @@ final class WCSSOT {
 			"weight"                  => 0,
 		], $order );
 		if ( ! $this->get_api()->create_shipment( $shipment_data ) ) {
+			return false;
+		}
+		update_post_meta( $order_id, 'wcssot_shipment_exported', true );
+		if ( ! $this->get_api()->set_order_state( $order, 'in_preparation' ) ) {
 			return false;
 		}
 
