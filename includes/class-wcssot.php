@@ -551,11 +551,12 @@ final class WCSSOT {
 		}
 		/**
 		 * @todo Export the shipment to Seven Senders, set the order state to 'in_preparation' and set order meta flags
-         *       accordingly.
+		 *       accordingly.
 		 */
 		if ( ! $this->is_order_valid_for_shipment( $order ) ) {
 			return false;
 		}
+		$planned_pickup_datetime = $this->get_planned_pickup_datetime( $order );
 
 		return true;
 	}
@@ -750,6 +751,28 @@ final class WCSSOT {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Returns the planned pickup datetime for the provided order.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return string
+	 */
+	private function get_planned_pickup_datetime( $order ) {
+		$datetime_str = '';
+		try {
+			$datetime     = new DateTime( '+1 weekday', $this->get_timezone() );
+			$datetime->setTime(12, 0, 0, 0);
+			$datetime_str = $datetime->format( 'c' );
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not calculate planned pickup datetime for order #' . $order->get_id() . '.' );
+		}
+
+		return apply_filters( 'wcssot_get_planned_pickup_datetime', $datetime_str, $order, $this->get_shipping_carrier( $order ) );
 	}
 
 	/**
