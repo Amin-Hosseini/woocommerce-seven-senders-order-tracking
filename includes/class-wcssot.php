@@ -151,6 +151,7 @@ final class WCSSOT {
 		}
 		add_action( 'woocommerce_order_status_processing', [ $this, 'export_order' ], 10, 2 );
 		add_action( 'woocommerce_order_status_completed', [ $this, 'export_shipment' ], 10, 2 );
+		add_action( 'woocommerce_email_before_order_table', [ $this, 'render_tracking_information' ], 10, 1 );
 	}
 
 	/**
@@ -171,6 +172,99 @@ final class WCSSOT {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Renders the tracking information to the "Completed Order" email content.
+	 *
+	 * @since 0.4.1
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return void
+	 */
+	public function render_tracking_information( $order ) {
+		$shipment_exported = $order->get_meta( 'wcssot_shipment_exported' );
+		$tracking_link     = $order->get_meta( 'wcssot_order_tracking_link' );
+		$carrier           = $this->get_shipping_carrier( $order );
+		$tracking_code     = $this->get_shipping_tracking_code( $order );
+		if ( empty( $shipment_exported ) || empty( $tracking_link ) || empty( $carrier ) ) {
+			WCSSOT_Logger::error( 'Could not render tracking information for order #' . $order->get_id() . '.' );
+
+			return;
+		}
+		$supported_carriers = $this->get_api()->get_supported_carriers();
+		if ( empty( $supported_carriers[ $carrier ] ) ) {
+			WCSSOT_Logger::error( 'Carrier information could not be found for order #' . $order->get_id() . '.' );
+
+			return;
+		}
+		$carrier = $supported_carriers[ $carrier ]['name'];
+		$text    = __(
+			'<a href="%1$s" target="_blank">Click here to see the status of your %2$s shipment.</a>',
+			'woocommerce-seven-senders-order-tracking'
+		);
+		$text    = wp_kses( $text, [
+			'a' => [
+				'href'   => [],
+				'target' => [],
+			]
+		] );
+		$text    = '<p>' . sprintf( $text, $tracking_link, $carrier ) . '<br />';
+		$text    .= sprintf( esc_html__( 'Your tracking code is: %s', 'woocommerce-seven-senders-order-tracking' ), $tracking_code );
+		$text    .= '</p>';
+
+		echo $text;
+	}
+
+	/**
+	 * Returns the shipping carrier for the provided order.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return string
+	 */
+	private function get_shipping_carrier( WC_Order $order ) {
+		return (string) $order->get_meta( 'wcssot_shipping_carrier' );
+	}
+
+	/**
+	 * Returns the shipping tracking code for the provided order.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return string
+	 */
+	private function get_shipping_tracking_code( WC_Order $order ) {
+		return (string) $order->get_meta( 'wcssot_shipping_tracking_code' );
+	}
+
+	/**
+	 * Returns the API manager instance.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return WCSSOT_API_Manager
+	 */
+	public function get_api() {
+		return $this->api;
+	}
+
+	/**
+	 * Sets the API manager instance.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param WCSSOT_API_Manager $api
+	 *
+	 * @return void
+	 */
+	public function set_api( $api ) {
+		$this->api = $api;
 	}
 
 	/**
@@ -656,30 +750,6 @@ final class WCSSOT {
 	}
 
 	/**
-	 * Returns the API manager instance.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @return WCSSOT_API_Manager
-	 */
-	public function get_api() {
-		return $this->api;
-	}
-
-	/**
-	 * Sets the API manager instance.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @param WCSSOT_API_Manager $api
-	 *
-	 * @return void
-	 */
-	public function set_api( $api ) {
-		$this->api = $api;
-	}
-
-	/**
 	 * Returns the tracking link for the provided order.
 	 *
 	 * @since 0.2.0
@@ -732,32 +802,6 @@ final class WCSSOT {
 	}
 
 	/**
-	 * Returns the shipping carrier for the provided order.
-	 *
-	 * @since 0.3.0
-	 *
-	 * @param WC_Order $order
-	 *
-	 * @return string
-	 */
-	private function get_shipping_carrier( WC_Order $order ) {
-		return (string) $order->get_meta( 'wcssot_shipping_carrier' );
-	}
-
-	/**
-	 * Returns the shipping tracking code for the provided order.
-	 *
-	 * @since 0.3.0
-	 *
-	 * @param WC_Order $order
-	 *
-	 * @return string
-	 */
-	private function get_shipping_tracking_code( WC_Order $order ) {
-		return (string) $order->get_meta( 'wcssot_shipping_tracking_code' );
-	}
-
-	/**
 	 * Returns whether the provided carrier is supported.
 	 *
 	 * @since 0.3.0
@@ -774,7 +818,7 @@ final class WCSSOT {
 		}
 		if (
 			empty( $order->get_shipping_country() )
-			|| ! in_array( strtoupper( $order->get_shipping_country() ), $supported_carriers[ $carrier ] )
+			|| ! in_array( strtoupper( $order->get_shipping_country() ), $supported_carriers[ $carrier ]['countries'] )
 		) {
 			return false;
 		}
