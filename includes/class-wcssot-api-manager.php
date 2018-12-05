@@ -61,8 +61,8 @@ class WCSSOT_API_Manager {
 	 */
 	public function __construct( $api_base_url, $api_access_key ) {
 		WCSSOT_Logger::debug( 'Initialising the API manager class.' );
-		$this->setApiBaseUrl( $api_base_url );
-		$this->setApiAccessKey( $api_access_key );
+		$this->set_api_base_url( $api_base_url );
+		$this->set_api_access_key( $api_access_key );
 	}
 
 	/**
@@ -75,7 +75,7 @@ class WCSSOT_API_Manager {
 	 * @return array
 	 * @throws Exception
 	 */
-	public function getOrders( $params ) {
+	public function get_orders( $params ) {
 		WCSSOT_Logger::debug( 'Fetching orders from the API.' );
 
 		return $this->request( [], 'orders', 'GET', $params );
@@ -98,9 +98,9 @@ class WCSSOT_API_Manager {
 		WCSSOT_Logger::debug( 'Initialising request to the API for the "' . $endpoint . '" endpoint.' );
 		$headers = array_merge( [
 			'Content-Type' => 'application/json'
-		], $this->getAuthorizationHeaders() );
+		], $this->get_authorization_headers() );
 
-		$response = wp_safe_remote_request( $this->getEndpointUrl( $endpoint, $params ), [
+		$response = wp_safe_remote_request( $this->get_endpoint_url( $endpoint, $params ), [
 			'method'     => $method,
 			'headers'    => $headers,
 			'body'       => json_encode( $data ),
@@ -141,11 +141,11 @@ class WCSSOT_API_Manager {
 	 *
 	 * @return array
 	 */
-	private function getAuthorizationHeaders() {
+	private function get_authorization_headers() {
 		$headers = [];
 
-		if ( ! empty( $this->getAuthorizationBearer() ) ) {
-			$headers['Authorization'] = 'Bearer ' . $this->getAuthorizationBearer();
+		if ( ! empty( $this->get_authorization_bearer() ) ) {
+			$headers['Authorization'] = 'Bearer ' . $this->get_authorization_bearer();
 		}
 
 		return $headers;
@@ -158,7 +158,7 @@ class WCSSOT_API_Manager {
 	 *
 	 * @return string
 	 */
-	public function getAuthorizationBearer() {
+	public function get_authorization_bearer() {
 		return $this->authorization_bearer;
 	}
 
@@ -171,7 +171,7 @@ class WCSSOT_API_Manager {
 	 *
 	 * @return void
 	 */
-	public function setAuthorizationBearer( $authorization_bearer ) {
+	public function set_authorization_bearer( $authorization_bearer ) {
 		$this->authorization_bearer = $authorization_bearer;
 	}
 
@@ -185,8 +185,8 @@ class WCSSOT_API_Manager {
 	 *
 	 * @return string
 	 */
-	public function getEndpointUrl( $endpoint, $params = [] ) {
-		$url = $this->getApiBaseUrl() . '/' . $endpoint;
+	public function get_endpoint_url( $endpoint, $params = [] ) {
+		$url = $this->get_api_base_url() . '/' . $endpoint;
 		if ( ! empty( $params ) ) {
 			$url .= '?' . http_build_query( $params );
 		}
@@ -201,7 +201,7 @@ class WCSSOT_API_Manager {
 	 *
 	 * @return string
 	 */
-	public function getApiBaseUrl() {
+	public function get_api_base_url() {
 		return $this->api_base_url;
 	}
 
@@ -214,7 +214,7 @@ class WCSSOT_API_Manager {
 	 *
 	 * @return void
 	 */
-	public function setApiBaseUrl( $api_base_url ) {
+	public function set_api_base_url( $api_base_url ) {
 		$this->api_base_url = $api_base_url;
 	}
 
@@ -230,10 +230,10 @@ class WCSSOT_API_Manager {
 		WCSSOT_Logger::debug( 'Authenticating the app to the Seven Senders API.' );
 		try {
 			$response = $this->request( [
-				'access_key' => $this->getApiAccessKey()
+				'access_key' => $this->get_api_access_key()
 			], 'token', 'POST' );
 		} catch ( Exception $exception ) {
-			WCSSOT_Logger::error( 'Could not authenticate app with access key "' . $this->getApiAccessKey() . '".' );
+			WCSSOT_Logger::error( 'Could not authenticate app with access key "' . $this->get_api_access_key() . '".' );
 
 			return;
 		}
@@ -246,7 +246,7 @@ class WCSSOT_API_Manager {
 			WCSSOT_Logger::error( 'The token is missing from the authentication response!' );
 			throw new Exception( "The token is missing from the authentication response!" );
 		}
-		$this->setAuthorizationBearer( $body['token'] );
+		$this->set_authorization_bearer( $body['token'] );
 	}
 
 	/**
@@ -256,7 +256,7 @@ class WCSSOT_API_Manager {
 	 *
 	 * @return string
 	 */
-	public function getApiAccessKey() {
+	public function get_api_access_key() {
 		return $this->api_access_key;
 	}
 
@@ -269,7 +269,7 @@ class WCSSOT_API_Manager {
 	 *
 	 * @return void
 	 */
-	public function setApiAccessKey( $api_access_key ) {
+	public function set_api_access_key( $api_access_key ) {
 		$this->api_access_key = $api_access_key;
 	}
 
@@ -280,7 +280,7 @@ class WCSSOT_API_Manager {
 	 *
 	 * @return bool
 	 */
-	public function createOrder( $data ) {
+	public function create_order( $data ) {
 		WCSSOT_Logger::debug( 'Creating a new order entry for order #' . $data['order_id'] . '.' );
 		try {
 			$response = $this->request( $data, 'orders', 'POST' );
@@ -304,7 +304,7 @@ class WCSSOT_API_Manager {
 	 *
 	 * @return bool
 	 */
-	public function setOrderState( $order, $state ) {
+	public function set_order_state( $order, $state ) {
 		WCSSOT_Logger::debug( 'Setting order state to "' . $state . '" for order #' . $order->get_id() . '.' );
 		try {
 			$response = $this->request( [
