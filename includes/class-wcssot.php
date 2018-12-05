@@ -76,17 +76,17 @@ final class WCSSOT {
 	 * @return void
 	 */
 	private function initialise_properties() {
-		$this->setOptions( get_option( 'wcssot_settings', [] ) );
+		$this->set_options( get_option( 'wcssot_settings', [] ) );
 		try {
-			$this->setTimezone( new DateTimeZone( wc_timezone_string() ) );
+			$this->set_timezone( new DateTimeZone( wc_timezone_string() ) );
 		} catch ( Exception $exception ) {
 			WCSSOT_Logger::error( 'Could not instantiate shop timezone for "' . wc_timezone_string() . '".' );
 
 			return;
 		}
-		$this->setApi( new WCSSOT_API_Manager(
-			$this->getOption( 'wcssot_api_base_url' ),
-			$this->getOption( 'wcssot_api_access_key' )
+		$this->set_api( new WCSSOT_API_Manager(
+			$this->get_option( 'wcssot_api_base_url' ),
+			$this->get_option( 'wcssot_api_access_key' )
 		) );
 	}
 
@@ -100,8 +100,8 @@ final class WCSSOT {
 	 *
 	 * @return mixed|null
 	 */
-	public function getOption( $option, $default = null ) {
-		$options = $this->getOptions();
+	public function get_option( $option, $default = null ) {
+		$options = $this->get_options();
 
 		return isset( $options[ $option ] ) ? $options[ $option ] : $default;
 	}
@@ -113,7 +113,7 @@ final class WCSSOT {
 	 *
 	 * @return array
 	 */
-	public function getOptions() {
+	public function get_options() {
 		return $this->options;
 	}
 
@@ -126,7 +126,7 @@ final class WCSSOT {
 	 *
 	 * @return void
 	 */
-	public function setOptions( $options ) {
+	public function set_options( $options ) {
 		$this->options = $options;
 	}
 
@@ -150,6 +150,7 @@ final class WCSSOT {
 			return;
 		}
 		add_action( 'woocommerce_order_status_processing', [ $this, 'export_order' ], 10, 2 );
+		add_action( 'woocommerce_order_status_completed', [ $this, 'export_shipment' ], 10, 2 );
 	}
 
 	/**
@@ -528,6 +529,69 @@ final class WCSSOT {
 	}
 
 	/**
+	 * Exports the shipment to Seven Senders for the provided order.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param int $order_id
+	 * @param \WC_Order $order
+	 *
+	 * @return bool
+	 */
+	public function export_shipment( $order_id, $order ) {
+		WCSSOT_Logger::debug( 'Exporting shipment for order #' . $order_id . '.' );
+
+		if ( ! empty( $order->get_meta( 'wcssot_shipment_exported' ) ) ) {
+			WCSSOT_Logger::debug( 'Shipment for order #' . $order_id . ' does not need to be exported.' );
+
+			return true;
+		}
+		if ( ! $this->export_order( $order_id, $order ) ) {
+			return false;
+		}
+		if ( ! $this->is_order_valid_for_shipment( $order ) ) {
+			return false;
+		}
+		$shipment_data = apply_filters( 'wcssot_get_shipment_data', [
+			"tracking_code"           => $this->get_shipping_tracking_code( $order ),
+			"reference_number"        => "",
+			"pickup_point_selected"   => false,
+			"planned_pickup_datetime" => $this->get_planned_pickup_datetime( $order ),
+			"comment"                 => "",
+			"warehouse_address"       => "",
+			"warehouse"               => "Primary Warehouse",
+			"shipment_tag"            => [],
+			"recipient_address"       => $this->get_recipient_address( $order ),
+			"return_parcel"           => false,
+			"trackable"               => true,
+			"order_id"                => (string) $order->get_order_number(),
+			"carrier"                 => [
+				"name"    => $this->get_shipping_carrier( $order ),
+				"country" => $order->get_shipping_country(),
+			],
+			"carrier_service"         => "standard",
+			"recipient_first_name"    => $order->get_shipping_first_name(),
+			"recipient_last_name"     => $order->get_shipping_last_name(),
+			"recipient_company_name"  => $order->get_shipping_company(),
+			"recipient_email"         => $order->get_billing_email(),
+			"recipient_zip"           => $order->get_shipping_postcode(),
+			"recipient_city"          => $order->get_shipping_city(),
+			"recipient_country"       => $order->get_shipping_country(),
+			"recipient_phone"         => $order->get_billing_phone(),
+			"weight"                  => 0,
+		], $order );
+		if ( ! $this->get_api()->create_shipment( $shipment_data ) ) {
+			return false;
+		}
+		update_post_meta( $order_id, 'wcssot_shipment_exported', true );
+		if ( ! $this->get_api()->set_order_state( $order, 'in_preparation' ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Exports the order data to Seven Senders.
 	 *
 	 * @since 0.2.0
@@ -541,33 +605,26 @@ final class WCSSOT {
 		if ( ! $order->needs_processing() || ! empty( $order->get_meta( 'wcssot_order_exported' ) ) ) {
 			WCSSOT_Logger::debug( 'Order #' . $order_id . ' does not need to be exported.' );
 
-			return false;
+			return true;
 		}
 		try {
-			$order_date_created = new DateTime( $order->get_date_created(), $this->getTimezone() );
+			$order_date_created = new DateTime( $order->get_date_created(), $this->get_timezone() );
 		} catch ( Exception $exception ) {
 			WCSSOT_Logger::error( 'Could not instantiate date object for order #' . $order_id . ' with date "' . $order->get_date_created() . '".' );
 
 			return false;
 		}
-		$order_data = [
+		$order_data = apply_filters( 'wcssot_get_order_data', [
 			'order_id'   => $order->get_order_number(),
 			'order_url'  => get_site_url(),
 			'order_date' => $order_date_created->format( 'c' ),
-		];
-
-		/**
-		 * @todo Implement set locking and informative meta data,
-		 *       and set order state to 'in_production'.
-		 */
-		if ( ! $this->getApi()->createOrder( $order_data ) ) {
+		], $order );
+		if ( ! $this->get_api()->create_order( $order_data ) ) {
 			return false;
 		}
-
 		update_post_meta( $order_id, 'wcssot_order_exported', true );
 		update_post_meta( $order_id, 'wcssot_order_tracking_link', $this->get_tracking_link( $order->get_order_number() ) );
-
-		if ( ! $this->getApi()->setOrderState( $order, 'in_production' ) ) {
+		if ( ! $this->get_api()->set_order_state( $order, 'in_production' ) ) {
 			return false;
 		}
 
@@ -581,7 +638,7 @@ final class WCSSOT {
 	 *
 	 * @return DateTimeZone
 	 */
-	public function getTimezone() {
+	public function get_timezone() {
 		return $this->timezone;
 	}
 
@@ -594,7 +651,7 @@ final class WCSSOT {
 	 *
 	 * @return void
 	 */
-	public function setTimezone( $timezone ) {
+	public function set_timezone( $timezone ) {
 		$this->timezone = $timezone;
 	}
 
@@ -605,7 +662,7 @@ final class WCSSOT {
 	 *
 	 * @return WCSSOT_API_Manager
 	 */
-	public function getApi() {
+	public function get_api() {
 		return $this->api;
 	}
 
@@ -618,7 +675,7 @@ final class WCSSOT {
 	 *
 	 * @return void
 	 */
-	public function setApi( $api ) {
+	public function set_api( $api ) {
 		$this->api = $api;
 	}
 
@@ -634,12 +691,136 @@ final class WCSSOT {
 	private function get_tracking_link( $order_number ) {
 		$link = '';
 
-		$base_url = $this->getOption( 'wcssot_tracking_page_base_url', '' );
+		$base_url = $this->get_option( 'wcssot_tracking_page_base_url', '' );
 		if ( ! empty( $base_url ) && ! empty( $order_number ) ) {
 			$link = $base_url . '/' . $order_number;
 		}
 
 		return $link;
+	}
+
+	/**
+	 * Returns whether the order provided is valid for shipment export.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param \WC_Order $order
+	 *
+	 * @return bool
+	 */
+	private function is_order_valid_for_shipment( $order ) {
+		WCSSOT_Logger::debug( 'Checking if order #' . $order->get_id() . ' is valid for shipment export.' );
+		$carrier = $this->get_shipping_carrier( $order );
+		if ( empty( $carrier ) ) {
+			WCSSOT_Logger::error( 'Order #' . $order->get_id() . ' does not have an assigned shipping carrier.' );
+
+			return false;
+		}
+		$tracking_code = $this->get_shipping_tracking_code( $order );
+		if ( empty( $tracking_code ) ) {
+			WCSSOT_Logger::error( 'Order #' . $order->get_id() . ' does not have an assigned shipping tracking code.' );
+
+			return false;
+		}
+		if ( ! apply_filters( 'wcssot_is_carrier_valid', $this->is_carrier_valid( $carrier, $order ), $carrier, $order ) ) {
+			WCSSOT_Logger::error( 'The carrier "' . $carrier . '" is not supported for order #' . $order->get_id() . '.' );
+
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Returns the shipping carrier for the provided order.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return string
+	 */
+	private function get_shipping_carrier( WC_Order $order ) {
+		return (string) $order->get_meta( 'wcssot_shipping_carrier' );
+	}
+
+	/**
+	 * Returns the shipping tracking code for the provided order.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return string
+	 */
+	private function get_shipping_tracking_code( WC_Order $order ) {
+		return (string) $order->get_meta( 'wcssot_shipping_tracking_code' );
+	}
+
+	/**
+	 * Returns whether the provided carrier is supported.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param string $carrier
+	 * @param WC_Order $order
+	 *
+	 * @return bool
+	 */
+	private function is_carrier_valid( $carrier, $order ) {
+		$supported_carriers = $this->get_api()->get_supported_carriers();
+		$carrier            = str_replace( [ '-', ' ' ], '_', strtolower( $carrier ) );
+		if ( ! isset( $supported_carriers[ $carrier ] ) ) {
+			return false;
+		}
+		if (
+			empty( $order->get_shipping_country() )
+			|| ! in_array( strtoupper( $order->get_shipping_country() ), $supported_carriers[ $carrier ] )
+		) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Returns the planned pickup datetime for the provided order.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return string
+	 */
+	private function get_planned_pickup_datetime( $order ) {
+		$datetime_str = '';
+		try {
+			$datetime = new DateTime( '+1 weekday', $this->get_timezone() );
+			$datetime->setTime( 12, 0, 0, 0 );
+			$datetime_str = $datetime->format( 'c' );
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not calculate planned pickup datetime for order #' . $order->get_id() . '.' );
+		}
+
+		return apply_filters( 'wcssot_get_planned_pickup_datetime', $datetime_str, $order, $this->get_shipping_carrier( $order ) );
+	}
+
+	/**
+	 * Returns the recipient formatted address for the provided order.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return string
+	 */
+	private function get_recipient_address( WC_Order $order ) {
+		$address = implode( ', ', array_filter( [
+			trim( $order->get_shipping_address_1() ),
+			trim( $order->get_shipping_address_2() ),
+		] ) );
+
+		return $address;
 	}
 
 	/**
@@ -649,7 +830,7 @@ final class WCSSOT {
 	 *
 	 * @return array
 	 */
-	public function getOptionsRequired() {
+	public function get_options_required() {
 		return $this->options_required;
 	}
 
@@ -662,7 +843,7 @@ final class WCSSOT {
 	 *
 	 * @return void
 	 */
-	public function setOptionsRequired( $options_required ) {
+	public function set_options_required( $options_required ) {
 		$this->options_required = $options_required;
 	}
 }

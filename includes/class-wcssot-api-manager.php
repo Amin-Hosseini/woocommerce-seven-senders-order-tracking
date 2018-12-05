@@ -42,6 +42,12 @@ class WCSSOT_API_Manager {
 	/** @var int $recursion_lock */
 	private static $recursion_lock = 0;
 
+	/** @var array $supported_carriers */
+	private static $supported_carriers;
+
+	/** @var bool $authenticated */
+	private static $authenticated = false;
+
 	/** @var string $api_base_url */
 	private $api_base_url;
 
@@ -61,8 +67,8 @@ class WCSSOT_API_Manager {
 	 */
 	public function __construct( $api_base_url, $api_access_key ) {
 		WCSSOT_Logger::debug( 'Initialising the API manager class.' );
-		$this->setApiBaseUrl( $api_base_url );
-		$this->setApiAccessKey( $api_access_key );
+		$this->set_api_base_url( $api_base_url );
+		$this->set_api_access_key( $api_access_key );
 	}
 
 	/**
@@ -75,7 +81,7 @@ class WCSSOT_API_Manager {
 	 * @return array
 	 * @throws Exception
 	 */
-	public function getOrders( $params ) {
+	public function get_orders( $params ) {
 		WCSSOT_Logger::debug( 'Fetching orders from the API.' );
 
 		return $this->request( [], 'orders', 'GET', $params );
@@ -90,132 +96,45 @@ class WCSSOT_API_Manager {
 	 * @param string $endpoint
 	 * @param string $method
 	 * @param array $params
+	 * @param bool $authenticate
 	 *
 	 * @return array
 	 * @throws Exception
 	 */
-	private function request( $data, $endpoint, $method, $params = [] ) {
+	private function request( $data, $endpoint, $method, $params = [], $authenticate = true ) {
 		WCSSOT_Logger::debug( 'Initialising request to the API for the "' . $endpoint . '" endpoint.' );
-		$headers = array_merge( [
+		if ( $authenticate && ! self::$authenticated ) {
+			$this->authenticate();
+		}
+		$headers  = array_merge( [
 			'Content-Type' => 'application/json'
-		], $this->getAuthorizationHeaders() );
-
-		$response = wp_safe_remote_request( $this->getEndpointUrl( $endpoint, $params ), [
+		], $this->get_authorization_headers() );
+		$response = wp_safe_remote_request( $this->get_endpoint_url( $endpoint, $params ), [
 			'method'     => $method,
 			'headers'    => $headers,
-			'body'       => json_encode( $data ),
+			'body'       => ! empty( $data ) ? json_encode( $data ) : '',
 			'timeout'    => 10,
 			'blocking'   => true,
 			'user-agent' => 'WooCommerce ' . WC()->version . '; ' . get_site_url(),
 		] );
-
 		WCSSOT_Logger::debug( 'Sent request to the "' . $endpoint . '" endpoint.' );
-
 		if ( is_wp_error( $response ) ) {
 			WCSSOT_Logger::error( 'The request to the "' . $endpoint . '" endpoint resulted in an error.' );
 			throw new Exception( $response->get_error_message() );
 		}
-
 		$response_code = wp_remote_retrieve_response_code( $response );
-
 		if ( $response_code === 401 && self::$recursion_lock ++ < 5 ) {
 			WCSSOT_Logger::debug( 'Attempting to authenticate with the Seven Senders API. (Try #' . self::$recursion_lock . ')' );
-
 			$this->authenticate();
 
 			return $this->request( $data, $endpoint, $method );
 		}
-
 		if ( $response_code < 200 || $response_code > 299 ) {
 			WCSSOT_Logger::error( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
 			throw new Exception( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
 		}
 
 		return $response;
-	}
-
-	/**
-	 * Returns the authorization headers.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @return array
-	 */
-	private function getAuthorizationHeaders() {
-		$headers = [];
-
-		if ( ! empty( $this->getAuthorizationBearer() ) ) {
-			$headers['Authorization'] = 'Bearer ' . $this->getAuthorizationBearer();
-		}
-
-		return $headers;
-	}
-
-	/**
-	 * Returns the authorization bearer.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @return string
-	 */
-	public function getAuthorizationBearer() {
-		return $this->authorization_bearer;
-	}
-
-	/**
-	 * Sets the authorization bearer.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @param string $authorization_bearer
-	 *
-	 * @return void
-	 */
-	public function setAuthorizationBearer( $authorization_bearer ) {
-		$this->authorization_bearer = $authorization_bearer;
-	}
-
-	/**
-	 * Returns the full URL for the provided endpoint.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @param string $endpoint
-	 * @param array $params
-	 *
-	 * @return string
-	 */
-	public function getEndpointUrl( $endpoint, $params = [] ) {
-		$url = $this->getApiBaseUrl() . '/' . $endpoint;
-		if ( ! empty( $params ) ) {
-			$url .= '?' . http_build_query( $params );
-		}
-
-		return $url;
-	}
-
-	/**
-	 * Returns the API base URL property.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @return string
-	 */
-	public function getApiBaseUrl() {
-		return $this->api_base_url;
-	}
-
-	/**
-	 * Sets the API base URL property.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @param string $api_base_url
-	 *
-	 * @return void
-	 */
-	public function setApiBaseUrl( $api_base_url ) {
-		$this->api_base_url = $api_base_url;
 	}
 
 	/**
@@ -230,10 +149,10 @@ class WCSSOT_API_Manager {
 		WCSSOT_Logger::debug( 'Authenticating the app to the Seven Senders API.' );
 		try {
 			$response = $this->request( [
-				'access_key' => $this->getApiAccessKey()
-			], 'token', 'POST' );
+				'access_key' => $this->get_api_access_key()
+			], 'token', 'POST', [], false );
 		} catch ( Exception $exception ) {
-			WCSSOT_Logger::error( 'Could not authenticate app with access key "' . $this->getApiAccessKey() . '".' );
+			WCSSOT_Logger::error( 'Could not authenticate app with access key "' . $this->get_api_access_key() . '".' );
 
 			return;
 		}
@@ -246,7 +165,8 @@ class WCSSOT_API_Manager {
 			WCSSOT_Logger::error( 'The token is missing from the authentication response!' );
 			throw new Exception( "The token is missing from the authentication response!" );
 		}
-		$this->setAuthorizationBearer( $body['token'] );
+		$this->set_authorization_bearer( $body['token'] );
+		self::$authenticated = true;
 	}
 
 	/**
@@ -256,7 +176,7 @@ class WCSSOT_API_Manager {
 	 *
 	 * @return string
 	 */
-	public function getApiAccessKey() {
+	public function get_api_access_key() {
 		return $this->api_access_key;
 	}
 
@@ -269,8 +189,92 @@ class WCSSOT_API_Manager {
 	 *
 	 * @return void
 	 */
-	public function setApiAccessKey( $api_access_key ) {
+	public function set_api_access_key( $api_access_key ) {
 		$this->api_access_key = $api_access_key;
+	}
+
+	/**
+	 * Returns the authorization headers.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return array
+	 */
+	private function get_authorization_headers() {
+		$headers = [];
+
+		if ( ! empty( $this->get_authorization_bearer() ) ) {
+			$headers['Authorization'] = 'Bearer ' . $this->get_authorization_bearer();
+		}
+
+		return $headers;
+	}
+
+	/**
+	 * Returns the authorization bearer.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return string
+	 */
+	public function get_authorization_bearer() {
+		return $this->authorization_bearer;
+	}
+
+	/**
+	 * Sets the authorization bearer.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $authorization_bearer
+	 *
+	 * @return void
+	 */
+	public function set_authorization_bearer( $authorization_bearer ) {
+		$this->authorization_bearer = $authorization_bearer;
+	}
+
+	/**
+	 * Returns the full URL for the provided endpoint.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $endpoint
+	 * @param array $params
+	 *
+	 * @return string
+	 */
+	public function get_endpoint_url( $endpoint, $params = [] ) {
+		$url = $this->get_api_base_url() . '/' . $endpoint;
+		if ( ! empty( $params ) ) {
+			$url .= '?' . http_build_query( $params );
+		}
+
+		return $url;
+	}
+
+	/**
+	 * Returns the API base URL property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return string
+	 */
+	public function get_api_base_url() {
+		return $this->api_base_url;
+	}
+
+	/**
+	 * Sets the API base URL property.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $api_base_url
+	 *
+	 * @return void
+	 */
+	public function set_api_base_url( $api_base_url ) {
+		$this->api_base_url = $api_base_url;
 	}
 
 	/**
@@ -280,7 +284,7 @@ class WCSSOT_API_Manager {
 	 *
 	 * @return bool
 	 */
-	public function createOrder( $data ) {
+	public function create_order( $data ) {
 		WCSSOT_Logger::debug( 'Creating a new order entry for order #' . $data['order_id'] . '.' );
 		try {
 			$response = $this->request( $data, 'orders', 'POST' );
@@ -304,7 +308,7 @@ class WCSSOT_API_Manager {
 	 *
 	 * @return bool
 	 */
-	public function setOrderState( $order, $state ) {
+	public function set_order_state( $order, $state ) {
 		WCSSOT_Logger::debug( 'Setting order state to "' . $state . '" for order #' . $order->get_id() . '.' );
 		try {
 			$response = $this->request( [
@@ -318,6 +322,64 @@ class WCSSOT_API_Manager {
 			return false;
 		}
 		WCSSOT_Logger::debug( 'Successfully set the order state to "' . $state . '" and received the following response: ' . $response['body'] );
+
+		return true;
+	}
+
+	/**
+	 * Returns the Seven Senders supported carriers list.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @return array
+	 */
+	public function get_supported_carriers() {
+		WCSSOT_Logger::debug( 'Trying to get supported carriers.' );
+		if ( ! empty( self::$supported_carriers ) ) {
+			WCSSOT_Logger::debug( 'Returning already fetched supported carriers.' );
+
+			return self::$supported_carriers;
+		}
+		WCSSOT_Logger::debug( 'Trying to fetch supported carriers from Seven Senders.' );
+		$carriers = [];
+		try {
+			$response = $this->request( [], 'carriers', 'GET' );
+			if ( empty( $response['body'] ) ) {
+				throw new Exception( 'Response body is empty.' );
+			}
+			$body = json_decode( $response['body'], true );
+			if ( empty( $body ) ) {
+				throw new Exception( 'Body contents are empty.' );
+			}
+			foreach ( $body as $entry ) {
+				$carriers[ $entry['code'] ] = $entry['countries'];
+			}
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not fetch supported carriers from Seven Senders.' );
+		}
+
+		return self::$supported_carriers = $carriers;
+	}
+
+	/**
+	 * Creates a new shipment entry in Seven Senders with the provided data.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param array $data
+	 *
+	 * @return bool
+	 */
+	public function create_shipment( $data ) {
+		WCSSOT_Logger::debug( 'Creating a new shipment entry for order #' . $data['order_id'] . '.' );
+		try {
+			$response = $this->request( $data, 'shipments', 'POST' );
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not create shipment entry of order #' . $data['order_id'] . '.' );
+
+			return false;
+		}
+		WCSSOT_Logger::debug( 'Successfully created the shipment and received the following response: ' . $response['body'] );
 
 		return true;
 	}
