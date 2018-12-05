@@ -550,13 +550,42 @@ final class WCSSOT {
 			return false;
 		}
 		/**
-		 * @todo Export the shipment to Seven Senders, set the order state to 'in_preparation' and set order meta flags
-		 *       accordingly.
+		 * @todo Set the order state to 'in_preparation' and set order meta flags accordingly.
 		 */
 		if ( ! $this->is_order_valid_for_shipment( $order ) ) {
 			return false;
 		}
-		$planned_pickup_datetime = $this->get_planned_pickup_datetime( $order );
+		$shipment_data = apply_filters( 'wcssot_get_shipment_data', [
+			"tracking_code"           => $this->get_shipping_tracking_code( $order ),
+			"reference_number"        => "",
+			"pickup_point_selected"   => false,
+			"planned_pickup_datetime" => $this->get_planned_pickup_datetime( $order ),
+			"comment"                 => "",
+			"warehouse_address"       => "",
+			"warehouse"               => "Primary Warehouse",
+			"shipment_tag"            => [],
+			"recipient_address"       => $this->get_recipient_address( $order ),
+			"return_parcel"           => false,
+			"trackable"               => true,
+			"order_id"                => (string) $order->get_order_number(),
+			"carrier"                 => [
+				"name"    => $this->get_shipping_carrier( $order ),
+				"country" => $order->get_shipping_country(),
+			],
+			"carrier_service"         => "standard",
+			"recipient_first_name"    => $order->get_shipping_first_name(),
+			"recipient_last_name"     => $order->get_shipping_last_name(),
+			"recipient_company_name"  => $order->get_shipping_company(),
+			"recipient_email"         => $order->get_billing_email(),
+			"recipient_zip"           => $order->get_shipping_postcode(),
+			"recipient_city"          => $order->get_shipping_city(),
+			"recipient_country"       => $order->get_shipping_country(),
+			"recipient_phone"         => $order->get_billing_phone(),
+			"weight"                  => 0,
+		], $order );
+		if ( ! $this->get_api()->create_shipment( $shipment_data ) ) {
+			return false;
+		}
 
 		return true;
 	}
@@ -584,11 +613,11 @@ final class WCSSOT {
 
 			return false;
 		}
-		$order_data = [
+		$order_data = apply_filters( 'wcssot_get_order_data', [
 			'order_id'   => $order->get_order_number(),
 			'order_url'  => get_site_url(),
 			'order_date' => $order_date_created->format( 'c' ),
-		];
+		], $order );
 		if ( ! $this->get_api()->create_order( $order_data ) ) {
 			return false;
 		}
@@ -765,14 +794,32 @@ final class WCSSOT {
 	private function get_planned_pickup_datetime( $order ) {
 		$datetime_str = '';
 		try {
-			$datetime     = new DateTime( '+1 weekday', $this->get_timezone() );
-			$datetime->setTime(12, 0, 0, 0);
+			$datetime = new DateTime( '+1 weekday', $this->get_timezone() );
+			$datetime->setTime( 12, 0, 0, 0 );
 			$datetime_str = $datetime->format( 'c' );
 		} catch ( Exception $exception ) {
 			WCSSOT_Logger::error( 'Could not calculate planned pickup datetime for order #' . $order->get_id() . '.' );
 		}
 
 		return apply_filters( 'wcssot_get_planned_pickup_datetime', $datetime_str, $order, $this->get_shipping_carrier( $order ) );
+	}
+
+	/**
+	 * Returns the recipient formatted address for the provided order.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return string
+	 */
+	private function get_recipient_address( WC_Order $order ) {
+		$address = implode( ', ', array_filter( [
+			trim( $order->get_shipping_address_1() ),
+			trim( $order->get_shipping_address_2() ),
+		] ) );
+
+		return $address;
 	}
 
 	/**

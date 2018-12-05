@@ -360,4 +360,27 @@ class WCSSOT_API_Manager {
 
 		return self::$supported_carriers = $carriers;
 	}
+
+	/**
+	 * Creates a new shipment entry in Seven Senders with the provided data.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param array $data
+	 *
+	 * @return bool
+	 */
+	public function create_shipment( $data ) {
+		WCSSOT_Logger::debug( 'Creating a new shipment entry for order #' . $data['order_id'] . '.' );
+		try {
+			$response = $this->request( $data, 'shipments', 'POST' );
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not create shipment entry of order #' . $data['order_id'] . '.' );
+
+			return false;
+		}
+		WCSSOT_Logger::debug( 'Successfully created the shipment and received the following response: ' . $response['body'] );
+
+		return true;
+	}
 }
