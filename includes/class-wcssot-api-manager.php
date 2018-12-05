@@ -351,7 +351,9 @@ class WCSSOT_API_Manager {
 			if ( empty( $body ) ) {
 				throw new Exception( 'Body contents are empty.' );
 			}
-			$carriers = $body;
+			foreach ( $body as $entry ) {
+				$carriers[ $entry['code'] ] = $entry['countries'];
+			}
 		} catch ( Exception $exception ) {
 			WCSSOT_Logger::error( 'Could not fetch supported carriers from Seven Senders.' );
 		}

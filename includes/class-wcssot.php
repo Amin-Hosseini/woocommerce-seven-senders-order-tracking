@@ -550,8 +550,8 @@ final class WCSSOT {
 			return false;
 		}
 		/**
-		 * @todo Check if carrier is valid for exporting, check if there is a tracking code set, export the shipment
-		 *       to Seven Senders, set the order state to 'in_preparation' and set order meta flags accordingly.
+		 * @todo Export the shipment to Seven Senders, set the order state to 'in_preparation' and set order meta flags
+         *       accordingly.
 		 */
 		if ( ! $this->is_order_valid_for_shipment( $order ) ) {
 			return false;
@@ -691,6 +691,11 @@ final class WCSSOT {
 
 			return false;
 		}
+		if ( ! apply_filters( 'wcssot_is_carrier_valid', $this->is_carrier_valid( $carrier, $order ), $carrier, $order ) ) {
+			WCSSOT_Logger::error( 'The carrier "' . $carrier . '" is not supported for order #' . $order->get_id() . '.' );
+
+			return false;
+		}
 
 		return true;
 	}
@@ -719,6 +724,32 @@ final class WCSSOT {
 	 */
 	private function get_shipping_tracking_code( WC_Order $order ) {
 		return (string) $order->get_meta( 'wcssot_shipping_tracking_code' );
+	}
+
+	/**
+	 * Returns whether the provided carrier is supported.
+	 *
+	 * @since 0.3.0
+	 *
+	 * @param string $carrier
+	 * @param WC_Order $order
+	 *
+	 * @return bool
+	 */
+	private function is_carrier_valid( $carrier, $order ) {
+		$supported_carriers = $this->get_api()->get_supported_carriers();
+		$carrier            = str_replace( [ '-', ' ' ], '_', strtolower( $carrier ) );
+		if ( ! isset( $supported_carriers[ $carrier ] ) ) {
+			return false;
+		}
+		if (
+			empty( $order->get_shipping_country() )
+			|| ! in_array( strtoupper( $order->get_shipping_country() ), $supported_carriers[ $carrier ] )
+		) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
