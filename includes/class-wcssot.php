@@ -184,6 +184,11 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function render_tracking_information( $order ) {
+		if ( $order->get_status() !== 'completed' ) {
+			WCSSOT_Logger::debug( 'Order status for order #' . $order->get_id() . ' is not valid to render the tracking information.' );
+
+			return;
+		}
 		$shipment_exported = $order->get_meta( 'wcssot_shipment_exported' );
 		$tracking_link     = $order->get_meta( 'wcssot_order_tracking_link' );
 		$carrier           = $this->get_shipping_carrier( $order );
@@ -631,6 +636,7 @@ final class WCSSOT {
 	 * @param \WC_Order $order
 	 *
 	 * @return bool
+	 * @throws Exception
 	 */
 	public function export_shipment( $order_id, $order ) {
 		WCSSOT_Logger::debug( 'Exporting shipment for order #' . $order_id . '.' );
