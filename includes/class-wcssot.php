@@ -184,8 +184,13 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function render_tracking_information( $order ) {
-		$shipment_exported = $order->get_meta( 'wcssot_shipment_exported' );
-		$tracking_link     = $order->get_meta( 'wcssot_order_tracking_link' );
+		if ( $order->get_status() !== 'completed' ) {
+			WCSSOT_Logger::debug( 'Order status for order #' . $order->get_id() . ' is not valid to render the tracking information.' );
+
+			return;
+		}
+		$shipment_exported = $this->is_shipment_exported( $order, true );
+		$tracking_link     = $this->get_order_tracking_link( $order );
 		$carrier           = $this->get_shipping_carrier( $order );
 		$tracking_code     = $this->get_shipping_tracking_code( $order );
 		if ( empty( $shipment_exported ) || empty( $tracking_link ) || empty( $carrier ) ) {
@@ -215,6 +220,37 @@ final class WCSSOT {
 		$text    .= '</p>';
 
 		echo $text;
+	}
+
+	/**
+	 * Returns whether the shipment has been exported for the provided order.
+	 *
+	 * @since 0.5.0
+	 *
+	 * @param WC_Order $order
+	 * @param bool $refresh
+	 *
+	 * @return bool
+	 */
+	private function is_shipment_exported( $order, $refresh ) {
+		if ( $refresh ) {
+			return ! empty( get_post_meta( $order->get_id(), 'wcssot_shipment_exported', true ) );
+		}
+
+		return ! empty( $order->get_meta( 'wcssot_shipment_exported' ) );
+	}
+
+	/**
+	 * Returns the order tracking link.
+	 *
+	 * @since 0.5.0
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return string
+	 */
+	private function get_order_tracking_link( $order ) {
+		return (string) $order->get_meta( 'wcssot_order_tracking_link' );
 	}
 
 	/**
@@ -631,6 +667,7 @@ final class WCSSOT {
 	 * @param \WC_Order $order
 	 *
 	 * @return bool
+	 * @throws Exception
 	 */
 	public function export_shipment( $order_id, $order ) {
 		WCSSOT_Logger::debug( 'Exporting shipment for order #' . $order_id . '.' );
