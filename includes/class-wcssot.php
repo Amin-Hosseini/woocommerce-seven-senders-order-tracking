@@ -234,10 +234,10 @@ final class WCSSOT {
 	 */
 	private function is_shipment_exported( $order, $refresh ) {
 		if ( $refresh ) {
-			return empty( get_post_meta( $order->get_id(), 'wcssot_shipment_exported', true ) );
+			return ! empty( get_post_meta( $order->get_id(), 'wcssot_shipment_exported', true ) );
 		}
 
-		return empty( $order->get_meta( 'wcssot_shipment_exported' ) );
+		return ! empty( $order->get_meta( 'wcssot_shipment_exported' ) );
 	}
 
 	/**
