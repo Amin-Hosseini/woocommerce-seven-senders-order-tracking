@@ -39,22 +39,34 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WCSSOT_API_Manager {
 
-	/** @var int $recursion_lock */
+	/**
+	 * @var int $recursion_lock The amount of times to try authenticating a request.
+	 */
 	private static $recursion_lock = 0;
 
-	/** @var array $supported_carriers */
+	/**
+	 * @var array $supported_carriers The list of carriers supported by Seven Senders.
+	 */
 	private static $supported_carriers;
 
-	/** @var bool $authenticated */
+	/**
+	 * @var bool $authenticated Whether the plugins has been authenticated in the current request cycle.
+	 */
 	private static $authenticated = false;
 
-	/** @var string $api_base_url */
+	/**
+	 * @var string $api_base_url The base URL of the API.
+	 */
 	private $api_base_url;
 
-	/** @var string $api_access_key */
+	/**
+	 * @var string $api_access_key The access key used for authentication.
+	 */
 	private $api_access_key;
 
-	/** @var string $authorization_bearer */
+	/**
+	 * @var string $authorization_bearer The authorisation bearer key.
+	 */
 	private $authorization_bearer;
 
 	/**
@@ -62,14 +74,32 @@ class WCSSOT_API_Manager {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param string $api_base_url
-	 * @param string $api_access_key
+	 * @param string $api_base_url The API base URL.
+	 * @param string $api_access_key The API access key for authorisation.
 	 */
 	public function __construct( $api_base_url, $api_access_key ) {
 		WCSSOT_Logger::debug( 'Initialising the API manager class.' );
+		/**
+		 * Fires before initialising the API manager.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param string $api_base_url The API base URl.
+		 * @param string $api_access_key The API access key.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		do_action( 'wcssot_api_manager_before_init', $api_base_url, $api_access_key, $this );
 		$this->set_api_base_url( $api_base_url );
 		$this->set_api_access_key( $api_access_key );
+		/**
+		 * Fires after initialising the API manager.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param string $api_base_url The API base URl.
+		 * @param string $api_access_key The API access key.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		do_action( 'wcssot_api_manager_after_init', $api_base_url, $api_access_key, $this );
 	}
 
@@ -78,15 +108,32 @@ class WCSSOT_API_Manager {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param $params
+	 * @param array $params The list of parameters to fetch the orders by.
 	 *
-	 * @return array
+	 * @return array The response from the Seven Senders API.
 	 * @throws Exception
 	 */
 	public function get_orders( $params ) {
 		WCSSOT_Logger::debug( 'Fetching orders from the API.' );
+		/**
+		 * Fires before getting the orders from the API.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $params The list of parameters to fetch the orders by.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		do_action( 'wcssot_api_manager_before_get_orders', $params, $this );
 
+		/**
+		 * Filters the response from the API after fetching the orders.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $response The response from the API.
+		 * @param array $params The list of parameters.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		return apply_filters(
 			'wcssot_api_manager_get_orders',
 			$this->request( [], 'orders', 'GET', $params ),
@@ -100,17 +147,29 @@ class WCSSOT_API_Manager {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param array $data
-	 * @param string $endpoint
-	 * @param string $method
-	 * @param array $params
-	 * @param bool $authenticate
+	 * @param array $data The list of parameters to request.
+	 * @param string $endpoint The endpoint to use for the request.
+	 * @param string $method The HTTP method to use for the request.
+	 * @param array $params The list of parameters to add.
+	 * @param bool $authenticate Whether to authenticate before requesting.
 	 *
-	 * @return array
+	 * @return array The response from the API.
 	 * @throws Exception
 	 */
 	private function request( $data, $endpoint, $method, $params = [], $authenticate = true ) {
 		WCSSOT_Logger::debug( 'Initialising request to the API for the "' . $endpoint . '" endpoint.' );
+		/**
+		 * Fires before sending the request to the API.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $data The list of parameters to request.
+		 * @param string $endpoint The endpoint to use for the request.
+		 * @param string $method The HTTP method to use for the request.
+		 * @param array $params The list of parameters to add.
+		 * @param bool $authenticate Whether to authenticate before requesting.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		do_action( 'wcssot_api_manager_before_request', $data, $endpoint, $method, $params, $authenticate, $this );
 		if ( $authenticate && ! self::$authenticated ) {
 			$this->authenticate();
@@ -118,6 +177,19 @@ class WCSSOT_API_Manager {
 		$headers  = array_merge( [
 			'Content-Type' => 'application/json'
 		], $this->get_authorization_headers() );
+		/**
+		 * Filters the list of request parameters.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $args The list of parameters.
+		 * @param array $data The list of parameters to request.
+		 * @param string $endpoint The endpoint to use for the request.
+		 * @param string $method The HTTP method to use for the request.
+		 * @param array $params The list of parameters to add.
+		 * @param bool $authenticate Whether to authenticate before requesting.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		$response = wp_safe_remote_request( $this->get_endpoint_url( $endpoint, $params ), apply_filters(
 			'wcssot_api_manager_request_arguments',
 			[
@@ -134,6 +206,21 @@ class WCSSOT_API_Manager {
 			throw new Exception( $response->get_error_message() );
 		}
 		$response_code = wp_remote_retrieve_response_code( $response );
+		/**
+		 * Filters the number of authentication tries.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param int $tries The limit of number of tries.
+		 * @param int $lock The number of tries already tried.
+		 * @param array $response The response returned from the API.
+		 * @param array $data The list of parameters to request.
+		 * @param string $endpoint The endpoint to use for the request.
+		 * @param string $method The HTTP method to use for the request.
+		 * @param array $params The list of parameters to add.
+		 * @param bool $authenticate Whether to authenticate before requesting.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		if (
 			$response_code === 401
 			&& self::$recursion_lock ++ < apply_filters(
@@ -156,6 +243,21 @@ class WCSSOT_API_Manager {
 
 			return $this->request( $data, $endpoint, $method );
 		}
+		/**
+		 * Filters whether the response code is valid.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param bool $valid Whether the code is valid.
+		 * @param int $code The response code.
+		 * @param array $response The response from the API.
+		 * @param array $data The list of parameters to request.
+		 * @param string $endpoint The endpoint to use for the request.
+		 * @param string $method The HTTP method to use for the request.
+		 * @param array $params The list of parameters to add.
+		 * @param bool $authenticate Whether to authenticate before requesting.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		if (
 		! apply_filters(
 			'wcssot_api_manager_is_valid_response_code',
@@ -175,8 +277,33 @@ class WCSSOT_API_Manager {
 			WCSSOT_Logger::error( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
 			throw new Exception( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
 		}
+		/**
+		 * Fires after the request was sent to the API.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $data The list of parameters to request.
+		 * @param string $endpoint The endpoint to use for the request.
+		 * @param string $method The HTTP method to use for the request.
+		 * @param array $params The list of parameters to add.
+		 * @param bool $authenticate Whether to authenticate before requesting.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		do_action( 'wcssot_api_manager_after_request', $data, $endpoint, $method, $params, $authenticate, $this );
 
+		/**
+		 * Filters the response from the API.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $response The response from the API.
+		 * @param array $data The list of parameters to request.
+		 * @param string $endpoint The endpoint to use for the request.
+		 * @param string $method The HTTP method to use for the request.
+		 * @param array $params The list of parameters to add.
+		 * @param bool $authenticate Whether to authenticate before requesting.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		return apply_filters(
 			'wcssot_api_manager_request',
 			$response,
@@ -199,6 +326,13 @@ class WCSSOT_API_Manager {
 	 */
 	private function authenticate() {
 		WCSSOT_Logger::debug( 'Authenticating the app to the Seven Senders API.' );
+		/**
+		 * Fires before authenticating the plugin with the API.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		do_action( 'wcssot_api_manager_before_authenticate', $this );
 		try {
 			$response = $this->request( apply_filters( 'wcssot_api_manager_authenticate_request_params', [
@@ -220,6 +354,13 @@ class WCSSOT_API_Manager {
 		}
 		$this->set_authorization_bearer( $body['token'] );
 		self::$authenticated = true;
+		/**
+		 * Fires after authenticating with the API.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		do_action( 'wcssot_api_manager_after_authenticate', $this );
 	}
 
@@ -228,9 +369,17 @@ class WCSSOT_API_Manager {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @return string
+	 * @return string The API access key.
 	 */
 	public function get_api_access_key() {
+		/**
+		 * Filters the API access key.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param string $key The API access key.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		return apply_filters( 'wcssot_api_manager_get_api_access_key', $this->api_access_key, $this );
 	}
 
@@ -244,6 +393,14 @@ class WCSSOT_API_Manager {
 	 * @return void
 	 */
 	public function set_api_access_key( $api_access_key ) {
+		/**
+		 * Filters the API access key to set.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param string $key The API access key.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		$this->api_access_key = apply_filters( 'wcssot_api_manager_set_api_access_key', $api_access_key, $this );
 	}
 
@@ -252,7 +409,7 @@ class WCSSOT_API_Manager {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @return array
+	 * @return array The authorisation headers.
 	 */
 	private function get_authorization_headers() {
 		$headers = [];
@@ -261,6 +418,14 @@ class WCSSOT_API_Manager {
 			$headers['Authorization'] = 'Bearer ' . $this->get_authorization_bearer();
 		}
 
+		/**
+		 * Filters the authorisation headers.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $headers The authorisation headers.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		return apply_filters( 'wcssot_api_manager_get_authorization_headers', $headers, $this );
 	}
 
@@ -269,9 +434,17 @@ class WCSSOT_API_Manager {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @return string
+	 * @return string The authorisation bearer.
 	 */
 	public function get_authorization_bearer() {
+		/**
+		 * Filters the authorisation bearer.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param string $bearer The authorisation bearer.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		return apply_filters( 'wcssot_api_manager_get_authorization_bearer', $this->authorization_bearer, $this );
 	}
 
@@ -280,11 +453,19 @@ class WCSSOT_API_Manager {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param string $authorization_bearer
+	 * @param string $authorization_bearer The authorisation bearer to set.
 	 *
 	 * @return void
 	 */
 	public function set_authorization_bearer( $authorization_bearer ) {
+		/**
+		 * Filters the authorisation bearer to set.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param string $authorization_bearer The authorisation bearer to set.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		$this->authorization_bearer = apply_filters(
 			'wcssot_api_manager_set_authorization_bearer',
 			$authorization_bearer,
@@ -297,10 +478,10 @@ class WCSSOT_API_Manager {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param string $endpoint
-	 * @param array $params
+	 * @param string $endpoint The API endpoint.
+	 * @param array $params The URL arguments to add.
 	 *
-	 * @return string
+	 * @return string The final API endpoint URL.
 	 */
 	public function get_endpoint_url( $endpoint, $params = [] ) {
 		$url = $this->get_api_base_url() . '/' . $endpoint;
@@ -308,6 +489,16 @@ class WCSSOT_API_Manager {
 			$url .= '?' . http_build_query( $params );
 		}
 
+		/**
+		 * Filters the API endpoint URL.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param string $url The final API endpoint URL.
+		 * @param string $endpoint The API endpoint to get.
+		 * @param array $params The list of arguments for the URL.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		return apply_filters( 'wcssot_api_manager_get_endpoint_url', $url, $endpoint, $params, $this );
 	}
 
@@ -316,9 +507,17 @@ class WCSSOT_API_Manager {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @return string
+	 * @return string The API base URL.
 	 */
 	public function get_api_base_url() {
+		/**
+		 * Filters the API base URL requested.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param string $base_url The API base URL to get.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		return apply_filters( 'wcssot_apimanager_get_api_base_url', $this->api_base_url, $this );
 	}
 
@@ -327,23 +526,39 @@ class WCSSOT_API_Manager {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param string $api_base_url
+	 * @param string $api_base_url The API base URL to set.
 	 *
 	 * @return void
 	 */
 	public function set_api_base_url( $api_base_url ) {
+		/**
+		 * Filters the API base URL to set.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param string $api_base_url The API base URL to set.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		$this->api_base_url = apply_filters( 'wcssot_api_manager_set_api_base_url', $api_base_url, $this );
 	}
 
 	/**
 	 * Creates a new order entry in Seven Senders.
 	 *
-	 * @param array $data
+	 * @param array $data The data of the order to pass to the API.
 	 *
-	 * @return bool
+	 * @return bool Whether the order has been created.
 	 */
 	public function create_order( $data ) {
 		WCSSOT_Logger::debug( 'Creating a new order entry for order #' . $data['order_id'] . '.' );
+		/**
+		 * Fires before creating the order.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $data The data to pass to the request.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		do_action( 'wcssot_api_manager_before_create_order', $data, $this );
 		try {
 			$response = $this->request( $data, 'orders', 'POST' );
@@ -355,8 +570,26 @@ class WCSSOT_API_Manager {
 		WCSSOT_Logger::debug(
 			'Successfully created the order and received the following response: ' . $response['body']
 		);
+		/**
+		 * Fires after creating the order.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $data The data to pass to the request.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		do_action( 'wcssot_api_manager_after_create_order', $response, $data, $this );
 
+		/**
+		 * Filters whether the order has been created.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param bool $created Whether the order has been created.
+		 * @param array $response The API response.
+		 * @param array $data The data passed to the API.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		return apply_filters( 'wcssot_api_manager_created_order', true, $response, $data, $this );
 	}
 
@@ -365,15 +598,33 @@ class WCSSOT_API_Manager {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param \WC_Order $order
-	 * @param string $state
+	 * @param \WC_Order $order The order object to set the state for.
+	 * @param string $state The state to set.
 	 *
-	 * @return bool
+	 * @return bool Whether the order state has been set.
 	 */
 	public function set_order_state( $order, $state ) {
 		WCSSOT_Logger::debug( 'Setting order state to "' . $state . '" for order #' . $order->get_id() . '.' );
+		/**
+		 * Fires before setting the order state.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param \WC_Order $order The order object to set the state for.
+		 * @param string $state The state to set.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		do_action( 'wcssot_api_manager_before_set_order_state', $order, $state, $this );
 		try {
+			/**
+			 * Filters the order state request parameters.
+			 *
+			 * @since 0.6.0
+			 *
+			 * @param array $params The parameters for the request.
+			 * @param string $state The state to set.
+			 * @param WCSSOT_API_Manager $manager The current class object.
+			 */
 			$response = $this->request( apply_filters( 'wcssot_api_manager_set_order_state_request_params', [
 				'order_id' => $order->get_order_number(),
 				'state'    => $state,
@@ -388,8 +639,28 @@ class WCSSOT_API_Manager {
 			'Successfully set the order state to "' . $state . '" and received the following response: '
 			. $response['body']
 		);
+		/**
+		 * Fires after the order state has been set.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $response The response from the API.
+		 * @param \WC_Order $order The order object.
+		 * @param string $state The state that got set.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		do_action( 'wcssot_api_manager_after_set_order_state', $response, $order, $state, $this );
 
+		/**
+		 * Filters whether the order state has been set.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param bool $set Whether the order state has been set.
+		 * @param array $response The response from the API.
+		 * @param string $state The state that got set.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		return apply_filters( 'wcssot_api_manager_set_order_state', true, $response, $order, $state, $this );
 	}
 
@@ -398,10 +669,17 @@ class WCSSOT_API_Manager {
 	 *
 	 * @since 0.3.0
 	 *
-	 * @return array
+	 * @return array The list of supported carriers.
 	 */
 	public function get_supported_carriers() {
 		WCSSOT_Logger::debug( 'Trying to get supported carriers.' );
+		/**
+		 * Fires before getting the supported carriers.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		do_action( 'wcssot_api_manager_before_get_supported_carriers', $this );
 		if ( ! empty( self::$supported_carriers ) ) {
 			WCSSOT_Logger::debug( 'Returning already fetched supported carriers.' );
@@ -409,6 +687,14 @@ class WCSSOT_API_Manager {
 			return self::$supported_carriers;
 		}
 		WCSSOT_Logger::debug( 'Trying to fetch supported carriers from Seven Senders.' );
+		/**
+		 * Filters the default list of carriers.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $carriers The default list of carriers.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		$carriers = apply_filters( 'wcssot_api_manager_default_carriers', [], $this );
 		if ( empty( $carriers ) ) {
 			try {
@@ -423,12 +709,29 @@ class WCSSOT_API_Manager {
 				foreach ( $body as $entry ) {
 					$carriers[ $entry['code'] ] = $entry;
 				}
+				/**
+				 * Fires after getting the supported carriers.
+				 *
+				 * @since 0.6.0
+				 *
+				 * @param array $carriers The list of supported carriers.
+				 * @param array $response The response from the API.
+		         * @param WCSSOT_API_Manager $manager The current class object.
+				 */
 				do_action( 'wcssot_api_manager_after_get_supported_carriers', $carriers, $response, $this );
 			} catch ( Exception $exception ) {
 				WCSSOT_Logger::error( 'Could not fetch supported carriers from Seven Senders.' );
 			}
 		}
 
+		/**
+		 * Filters the supported carriers.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $carriers The list of supported carriers.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		return apply_filters(
 			'wcssot_api_manager_get_supported_carriers',
 			self::$supported_carriers = $carriers,
@@ -441,12 +744,20 @@ class WCSSOT_API_Manager {
 	 *
 	 * @since 0.3.0
 	 *
-	 * @param array $data
+	 * @param array $data The data to pass to the API.
 	 *
-	 * @return bool
+	 * @return bool Whether the shipment has been created.
 	 */
 	public function create_shipment( $data ) {
 		WCSSOT_Logger::debug( 'Creating a new shipment entry for order #' . $data['order_id'] . '.' );
+		/**
+		 * Fires before creating the shipment.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $data The data to pass to the API.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		do_action( 'wcssot_api_manager_before_create_shipment', $data, $this );
 		try {
 			$response = $this->request( $data, 'shipments', 'POST' );
@@ -458,8 +769,27 @@ class WCSSOT_API_Manager {
 		WCSSOT_Logger::debug(
 			'Successfully created the shipment and received the following response: ' . $response['body']
 		);
+		/**
+		 * Fires after creating the shipment.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $response The response from the API.
+		 * @param array $data The data passed to the API.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		do_action( 'wcssot_api_manager_after_create_shipment', $response, $data, $this );
 
+		/**
+		 * Filters whether the shipment has been created.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param bool $created Whether the shipment has been created.
+		 * @param array $response The response from the API.
+		 * @param array $data The data passed to the API.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
 		return apply_filters( 'wcssot_api_manager_created_shipment', true, $response, $data, $this );
 	}
 }

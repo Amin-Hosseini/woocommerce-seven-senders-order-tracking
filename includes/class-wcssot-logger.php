@@ -36,7 +36,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @class WCSSOT_Logger
  */
 class WCSSOT_Logger {
-	/** @var array $supported_types */
+	/**
+	 * @var array $supported_types The list of supported logging types.
+	 */
 	private static $supported_types = [
 		'debug'   => 'DEBUG',
 		'error'   => '<ERROR>',
@@ -48,11 +50,18 @@ class WCSSOT_Logger {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param string $message
+	 * @param string $message The message to log.
 	 *
 	 * @return void
 	 */
 	public static function debug( $message ) {
+		/**
+		 * Filters whether the debug logging is enabled.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param bool $enabled Whether the debug logging is enabled.
+		 */
 		if ( apply_filters( 'wcssot_debug_logging_enabled', false ) ) {
 			self::log( 'debug', $message );
 		}
@@ -63,8 +72,8 @@ class WCSSOT_Logger {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param string $type
-	 * @param string $message
+	 * @param string $type The type of logging.
+	 * @param string $message The message to log.
 	 *
 	 * @return void
 	 */
@@ -74,6 +83,13 @@ class WCSSOT_Logger {
 		if ( ! empty( $backtrace[1] ) ) {
 			$suffix = ' (' . $backtrace[1]['file'] . ':' . $backtrace[1]['line'] . ')';
 		}
+		/**
+		 * Filters whether logging is enabled.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param bool $enabled Whether the logging is enabled.
+		 */
 		if ( isset( self::$supported_types[ $type ] ) && apply_filters( 'wcssot_logging_enabled', true ) ) {
 			error_log( '[WCSSOT] ' . self::$supported_types[ $type ] . ': ' . (string) $message . $suffix );
 		}
@@ -84,11 +100,18 @@ class WCSSOT_Logger {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param string $message
+	 * @param string $message The message to log.
 	 *
 	 * @return void
 	 */
 	public static function error( $message ) {
+		/**
+		 * Filters whether the error logging is enabled.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param bool $enabled Whether the error logging is enabled.
+		 */
 		if ( apply_filters( 'wcssot_error_logging_enabled', true ) ) {
 			self::log( 'error', $message );
 		}
@@ -99,11 +122,18 @@ class WCSSOT_Logger {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param string $message
+	 * @param string $message The message to log.
 	 *
 	 * @return void
 	 */
 	public static function warning( $message ) {
+		/**
+		 * Filters whether the warning logging is enabled.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param bool $enabled Whether the warning logging is enabled.
+		 */
 		if ( apply_filters( 'wcssot_warning_logging_enabled', true ) ) {
 			self::log( 'warning', $message );
 		}
