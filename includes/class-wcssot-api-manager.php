@@ -83,8 +83,9 @@ class WCSSOT_API_Manager {
 	 */
 	public function get_orders( $params ) {
 		WCSSOT_Logger::debug( 'Fetching orders from the API.' );
+		do_action( 'wcssot_api_manager_before_get_orders', $params, $this );
 
-		return $this->request( [], 'orders', 'GET', $params );
+		return apply_filters( 'wcssot_api_manager_get_orders', $this->request( [], 'orders', 'GET', $params ), $params, $this );
 	}
 
 	/**
@@ -103,6 +104,7 @@ class WCSSOT_API_Manager {
 	 */
 	private function request( $data, $endpoint, $method, $params = [], $authenticate = true ) {
 		WCSSOT_Logger::debug( 'Initialising request to the API for the "' . $endpoint . '" endpoint.' );
+		do_action( 'wcssot_api_manager_before_request', $data, $endpoint, $method, $params, $authenticate, $this );
 		if ( $authenticate && ! self::$authenticated ) {
 			$this->authenticate();
 		}
@@ -133,8 +135,9 @@ class WCSSOT_API_Manager {
 			WCSSOT_Logger::error( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
 			throw new Exception( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
 		}
+		do_action( 'wcssot_api_manager_after_request', $data, $endpoint, $method, $params, $authenticate, $this );
 
-		return $response;
+		return apply_filters( 'wcssot_api_manager_request', $response, $data, $endpoint, $method, $params, $authenticate, $this );
 	}
 
 	/**
@@ -147,6 +150,7 @@ class WCSSOT_API_Manager {
 	 */
 	private function authenticate() {
 		WCSSOT_Logger::debug( 'Authenticating the app to the Seven Senders API.' );
+		do_action( 'wcssot_api_manager_before_authenticate', $this );
 		try {
 			$response = $this->request( [
 				'access_key' => $this->get_api_access_key()
@@ -167,6 +171,7 @@ class WCSSOT_API_Manager {
 		}
 		$this->set_authorization_bearer( $body['token'] );
 		self::$authenticated = true;
+		do_action( 'wcssot_api_manager_after_authenticate', $this );
 	}
 
 	/**
@@ -177,7 +182,7 @@ class WCSSOT_API_Manager {
 	 * @return string
 	 */
 	public function get_api_access_key() {
-		return $this->api_access_key;
+		return apply_filters( 'wcssot_api_manager_get_api_access_key', $this->api_access_key, $this );
 	}
 
 	/**
@@ -190,7 +195,7 @@ class WCSSOT_API_Manager {
 	 * @return void
 	 */
 	public function set_api_access_key( $api_access_key ) {
-		$this->api_access_key = $api_access_key;
+		$this->api_access_key = apply_filters( 'wcssot_api_manager_set_api_access_key', $api_access_key, $this );
 	}
 
 	/**
@@ -207,7 +212,7 @@ class WCSSOT_API_Manager {
 			$headers['Authorization'] = 'Bearer ' . $this->get_authorization_bearer();
 		}
 
-		return $headers;
+		return apply_filters( 'wcssot_api_manager_get_authorization_headers', $headers, $this );
 	}
 
 	/**
@@ -218,7 +223,7 @@ class WCSSOT_API_Manager {
 	 * @return string
 	 */
 	public function get_authorization_bearer() {
-		return $this->authorization_bearer;
+		return apply_filters( 'wcssot_api_manager_get_authorization_bearer', $this->authorization_bearer, $this );
 	}
 
 	/**
@@ -231,7 +236,7 @@ class WCSSOT_API_Manager {
 	 * @return void
 	 */
 	public function set_authorization_bearer( $authorization_bearer ) {
-		$this->authorization_bearer = $authorization_bearer;
+		$this->authorization_bearer = apply_filters( 'wcssot_api_manager_set_authorization_bearer', $authorization_bearer, $this );
 	}
 
 	/**
@@ -250,7 +255,7 @@ class WCSSOT_API_Manager {
 			$url .= '?' . http_build_query( $params );
 		}
 
-		return $url;
+		return apply_filters( 'wcssot_api_manager_get_endpoint_url', $url, $endpoint, $params, $this );
 	}
 
 	/**
@@ -261,7 +266,7 @@ class WCSSOT_API_Manager {
 	 * @return string
 	 */
 	public function get_api_base_url() {
-		return $this->api_base_url;
+		return apply_filters( 'wcssot_apimanager_get_api_base_url', $this->api_base_url, $this );
 	}
 
 	/**
@@ -274,7 +279,7 @@ class WCSSOT_API_Manager {
 	 * @return void
 	 */
 	public function set_api_base_url( $api_base_url ) {
-		$this->api_base_url = $api_base_url;
+		$this->api_base_url = apply_filters( 'wcssot_api_manager_set_api_base_url', $api_base_url, $this );
 	}
 
 	/**
@@ -286,6 +291,7 @@ class WCSSOT_API_Manager {
 	 */
 	public function create_order( $data ) {
 		WCSSOT_Logger::debug( 'Creating a new order entry for order #' . $data['order_id'] . '.' );
+		do_action( 'wcssot_api_manager_before_create_order', $data, $this );
 		try {
 			$response = $this->request( $data, 'orders', 'POST' );
 		} catch ( Exception $exception ) {
@@ -294,8 +300,9 @@ class WCSSOT_API_Manager {
 			return false;
 		}
 		WCSSOT_Logger::debug( 'Successfully created the order and received the following response: ' . $response['body'] );
+		do_action( 'wcssot_api_manager_after_create_order', $response, $data, $this );
 
-		return true;
+		return apply_filters( 'wcssot_api_manager_created_order', true, $response, $data, $this );
 	}
 
 	/**
@@ -310,6 +317,7 @@ class WCSSOT_API_Manager {
 	 */
 	public function set_order_state( $order, $state ) {
 		WCSSOT_Logger::debug( 'Setting order state to "' . $state . '" for order #' . $order->get_id() . '.' );
+		do_action( 'wcssot_api_manager_before_set_order_state', $order, $state, $this );
 		try {
 			$response = $this->request( [
 				'order_id' => $order->get_order_number(),
@@ -322,8 +330,9 @@ class WCSSOT_API_Manager {
 			return false;
 		}
 		WCSSOT_Logger::debug( 'Successfully set the order state to "' . $state . '" and received the following response: ' . $response['body'] );
+		do_action( 'wcssot_api_manager_after_set_order_state', $response, $order, $state, $this );
 
-		return true;
+		return apply_filters( 'wcssot_api_manager_set_order_state', true, $response, $order, $state, $this );
 	}
 
 	/**
@@ -335,30 +344,34 @@ class WCSSOT_API_Manager {
 	 */
 	public function get_supported_carriers() {
 		WCSSOT_Logger::debug( 'Trying to get supported carriers.' );
+		do_action( 'wcssot_api_manager_before_get_supported_carriers', $this );
 		if ( ! empty( self::$supported_carriers ) ) {
 			WCSSOT_Logger::debug( 'Returning already fetched supported carriers.' );
 
 			return self::$supported_carriers;
 		}
 		WCSSOT_Logger::debug( 'Trying to fetch supported carriers from Seven Senders.' );
-		$carriers = [];
-		try {
-			$response = $this->request( [], 'carriers', 'GET' );
-			if ( empty( $response['body'] ) ) {
-				throw new Exception( 'Response body is empty.' );
+		$carriers = apply_filters( 'wcssot_api_manager_default_carriers', [], $this );
+		if ( empty( $carriers ) ) {
+			try {
+				$response = $this->request( [], 'carriers', 'GET' );
+				if ( empty( $response['body'] ) ) {
+					throw new Exception( 'Response body is empty.' );
+				}
+				$body = json_decode( $response['body'], true );
+				if ( empty( $body ) ) {
+					throw new Exception( 'Body contents are empty.' );
+				}
+				foreach ( $body as $entry ) {
+					$carriers[ $entry['code'] ] = $entry;
+				}
+				do_action( 'wcssot_api_manager_after_get_supported_carriers', $carriers, $response, $this );
+			} catch ( Exception $exception ) {
+				WCSSOT_Logger::error( 'Could not fetch supported carriers from Seven Senders.' );
 			}
-			$body = json_decode( $response['body'], true );
-			if ( empty( $body ) ) {
-				throw new Exception( 'Body contents are empty.' );
-			}
-			foreach ( $body as $entry ) {
-				$carriers[ $entry['code'] ] = $entry;
-			}
-		} catch ( Exception $exception ) {
-			WCSSOT_Logger::error( 'Could not fetch supported carriers from Seven Senders.' );
 		}
 
-		return self::$supported_carriers = $carriers;
+		return apply_filters( 'wcssot_api_manager_get_supported_carriers', self::$supported_carriers = $carriers, $this );
 	}
 
 	/**
@@ -372,6 +385,7 @@ class WCSSOT_API_Manager {
 	 */
 	public function create_shipment( $data ) {
 		WCSSOT_Logger::debug( 'Creating a new shipment entry for order #' . $data['order_id'] . '.' );
+		do_action('wcssot_api_manager_before_create_shipment', $data, $this);
 		try {
 			$response = $this->request( $data, 'shipments', 'POST' );
 		} catch ( Exception $exception ) {
@@ -380,7 +394,8 @@ class WCSSOT_API_Manager {
 			return false;
 		}
 		WCSSOT_Logger::debug( 'Successfully created the shipment and received the following response: ' . $response['body'] );
+		do_action('wcssot_api_manager_after_create_shipment', $response, $data, $this);
 
-		return true;
+		return apply_filters('wcssot_api_manager_created_shipment', true, $response, $data, $this);
 	}
 }
