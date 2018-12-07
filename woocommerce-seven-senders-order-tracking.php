@@ -41,7 +41,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 require_once( 'autoload.php' );
 
-// Define WCSSOT_PLUGIN_FILE
+/**
+ * Define WCSSOT_PLUGIN_FILE containing the entrypoint file name.
+ */
 if ( ! defined( 'WCSSOT_PLUGIN_FILE' ) ) {
 	define( 'WCSSOT_PLUGIN_FILE', __FILE__ );
 }
@@ -87,7 +89,9 @@ function wcssot_init() {
  * @return void
  */
 function wcssot_install() {
-	// Adds the default settings to the option.
+	/**
+	 * Adds the default settings to the option.
+	 */
 	add_option( 'wcssot_settings', [
 		'wcssot_api_base_url' => 'https://api.sevensenders.com/v2'
 	] );
