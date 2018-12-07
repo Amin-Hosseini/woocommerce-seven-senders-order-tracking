@@ -18,10 +18,17 @@ Clone the Github repository:
 
 `git clone git@github.com:hypeventures/woocommerce-seven-senders-order-tracking.git`
 
-### How to Use
-From your WordPress administration panel go to `Plugins > Installed Plugins` and scroll down until you find `WooCommerce Seven Senders Order Tracking`. You will need to activate it first, then click on the `Order Tracking` sub-menu to configure it.
+## How to Use
+From your WordPress administration panel go to `Plugins > Installed Plugins` and scroll down until you find `WooCommerce Seven Senders Order Tracking`. You will need to activate it first, then click on the `Order Tracking` sub-menu to configure it. `In order to use the plugin in all its capacity, you will have to adhere to the following workflow:
 
-### Configuration
+1. When an order is placed by your customer, and its status changes to `Processing`, the plugin will export the order data to the Seven Senders API and set the remote order state to `in_preparation`.
+2. Before you change the order status to `Completed`, you will have to set the order meta keys `wcssot_shipping_carrier` with a supported shipping carrier identifier (e.g.: `dhl`, `ups`, `dpd`, etc.) and `wcssot_shipping_tracking_code` with the corresponding tracking code provided by your shipping carrier.
+3. When the order status changes to `Completed` and the meta keys above are set and valid, the shipment will be exported and the remote order state will change to `in_production`.
+
+### Notice
+The planned pickup time for the shipment is calculated as the next business day.
+
+## Configuration
 #### API Base URL
 The base URL of the Seven Sender API. Default value is `https://api.sevensenders.com/v2`.
 
@@ -30,16 +37,6 @@ The access key of your Seven Senders account. You can find it at [your Seven Sen
 
 #### Tracking Page Base URL
 The base URL of your Seven Senders account. It's something like `https://[COMPANY].tracking.7senders.com/#/order`.
-
-### Workflow
-In order to use the plugin in all its capacity, you will have to adhere to the following workflow:
-
-1. When an order is placed by your customer, and its status changes to `Processing`, the plugin will export the order data to the Seven Senders API and set the remote order state to `in_preparation`.
-2. Before you change the order status to `Completed`, you will have to set the order meta keys `wcssot_shipping_carrier` with a supported shipping carrier identifier (e.g.: `dhl`, `ups`, `dpd`, etc.) and `wcssot_shipping_tracking_code` with the corresponding tracking code provided by your shipping carrier.
-3. When the order status changes to `Completed` and the meta keys above are set and valid, the shipment will be exported and the remote order state will change to `in_production`.
-
-#### Notice
-The planned pickup time for the shipment is calculated as the next business day.
 
 ## License
 Copyright (C) 2018 Invincible Brands GmbH
