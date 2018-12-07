@@ -735,10 +735,13 @@ final class WCSSOT {
 		$api_access_key         = trim( $_POST['wcssot_api_access_key'] );
 		$tracking_page_base_url = rtrim( trim( $_POST['wcssot_tracking_page_base_url'] ), '/' );
 
-		if (
-			! wc_is_valid_url( $api_base_url )
-			|| ! apply_filters( 'wcssot_is_api_base_url_valid', true, $api_base_url, $input, $this )
-		) {
+		if ( ! apply_filters(
+			'wcssot_is_api_base_url_valid',
+			wc_is_valid_url( $api_base_url ),
+			$api_base_url,
+			$input,
+			$this
+		) ) {
 			add_settings_error( 'wcssot', 'wcssot_error', sprintf( esc_html__(
 				'The field "%s" contains an invalid URL.',
 				'woocommerce-seven-senders-order-tracking'
@@ -758,10 +761,13 @@ final class WCSSOT {
 			return $input;
 		}
 
-		if (
-			! wc_is_valid_url( $tracking_page_base_url )
-			|| ! apply_filters( 'wcssot_is_tracking_page_base_url_valid', true, $tracking_page_base_url, $input, $this )
-		) {
+		if ( ! apply_filters(
+			'wcssot_is_tracking_page_base_url_valid',
+			wc_is_valid_url( $tracking_page_base_url ),
+			$tracking_page_base_url,
+			$input,
+			$this
+		) ) {
 			add_settings_error( 'wcssot', 'wcssot_error', sprintf( esc_html__(
 				'The field "%s" contains an invalid URL.',
 				'woocommerce-seven-senders-order-tracking'
@@ -935,7 +941,7 @@ final class WCSSOT {
 	 * @return string
 	 */
 	private function get_tracking_link( $order_number ) {
-		$link = '';
+		$link     = '';
 		$base_url = $this->get_option( 'wcssot_tracking_page_base_url', '' );
 		if ( ! empty( $base_url ) && ! empty( $order_number ) ) {
 			$link = $base_url . '/' . $order_number;

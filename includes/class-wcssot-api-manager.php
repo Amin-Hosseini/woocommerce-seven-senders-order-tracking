@@ -67,8 +67,10 @@ class WCSSOT_API_Manager {
 	 */
 	public function __construct( $api_base_url, $api_access_key ) {
 		WCSSOT_Logger::debug( 'Initialising the API manager class.' );
+		do_action( 'wcssot_api_manager_before_init', $api_base_url, $api_access_key, $this );
 		$this->set_api_base_url( $api_base_url );
 		$this->set_api_access_key( $api_access_key );
+		do_action( 'wcssot_api_manager_after_init', $api_base_url, $api_access_key, $this );
 	}
 
 	/**
@@ -116,21 +118,37 @@ class WCSSOT_API_Manager {
 		$headers  = array_merge( [
 			'Content-Type' => 'application/json'
 		], $this->get_authorization_headers() );
-		$response = wp_safe_remote_request( $this->get_endpoint_url( $endpoint, $params ), [
-			'method'     => $method,
-			'headers'    => $headers,
-			'body'       => ! empty( $data ) ? json_encode( $data ) : '',
-			'timeout'    => 10,
-			'blocking'   => true,
-			'user-agent' => 'WooCommerce ' . WC()->version . '; ' . get_site_url(),
-		] );
+		$response = wp_safe_remote_request( $this->get_endpoint_url( $endpoint, $params ), apply_filters(
+			'wcssot_api_manager_request_arguments',
+			[
+				'method'     => $method,
+				'headers'    => $headers,
+				'body'       => ! empty( $data ) ? json_encode( $data ) : '',
+				'timeout'    => 10,
+				'blocking'   => true,
+				'user-agent' => 'WooCommerce ' . WC()->version . '; ' . get_site_url(),
+			], $data, $endpoint, $method, $params, $authenticate, $this ) );
 		WCSSOT_Logger::debug( 'Sent request to the "' . $endpoint . '" endpoint.' );
 		if ( is_wp_error( $response ) ) {
 			WCSSOT_Logger::error( 'The request to the "' . $endpoint . '" endpoint resulted in an error.' );
 			throw new Exception( $response->get_error_message() );
 		}
 		$response_code = wp_remote_retrieve_response_code( $response );
-		if ( $response_code === 401 && self::$recursion_lock ++ < 5 ) {
+		if (
+			$response_code === 401
+			&& self::$recursion_lock ++ < apply_filters(
+				'wcssot_api_manager_authentication_tries',
+				5,
+				self::$recursion_lock,
+				$response,
+				$data,
+				$endpoint,
+				$method,
+				$params,
+				$authenticate,
+				$this
+			)
+		) {
 			WCSSOT_Logger::debug(
 				'Attempting to authenticate with the Seven Senders API. (Try #' . self::$recursion_lock . ')'
 			);
@@ -138,7 +156,22 @@ class WCSSOT_API_Manager {
 
 			return $this->request( $data, $endpoint, $method );
 		}
-		if ( $response_code < 200 || $response_code > 299 ) {
+		if (
+		! apply_filters(
+			'wcssot_api_manager_is_valid_response_code',
+			(
+				$response_code < 200 || $response_code > 299
+			),
+			$response_code,
+			$response,
+			$data,
+			$endpoint,
+			$method,
+			$params,
+			$authenticate,
+			$this
+		)
+		) {
 			WCSSOT_Logger::error( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
 			throw new Exception( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
 		}
@@ -168,9 +201,9 @@ class WCSSOT_API_Manager {
 		WCSSOT_Logger::debug( 'Authenticating the app to the Seven Senders API.' );
 		do_action( 'wcssot_api_manager_before_authenticate', $this );
 		try {
-			$response = $this->request( [
+			$response = $this->request( apply_filters( 'wcssot_api_manager_authenticate_request_params', [
 				'access_key' => $this->get_api_access_key()
-			], 'token', 'POST', [], false );
+			], $this ), 'token', 'POST', [], false );
 		} catch ( Exception $exception ) {
 			WCSSOT_Logger::error( 'Could not authenticate app with access key "' . $this->get_api_access_key() . '".' );
 
@@ -341,11 +374,11 @@ class WCSSOT_API_Manager {
 		WCSSOT_Logger::debug( 'Setting order state to "' . $state . '" for order #' . $order->get_id() . '.' );
 		do_action( 'wcssot_api_manager_before_set_order_state', $order, $state, $this );
 		try {
-			$response = $this->request( [
+			$response = $this->request( apply_filters( 'wcssot_api_manager_set_order_state_request_params', [
 				'order_id' => $order->get_order_number(),
 				'state'    => $state,
 				'datetime' => current_time( 'c' ),
-			], 'order_states', 'POST' );
+			], $order, $state, $this ), 'order_states', 'POST' );
 		} catch ( Exception $exception ) {
 			WCSSOT_Logger::error( 'Could not set state for order #' . $order->get_id() . '.' );
 
