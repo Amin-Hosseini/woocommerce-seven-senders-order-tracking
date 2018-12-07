@@ -63,8 +63,10 @@ final class WCSSOT {
 	 */
 	public function __construct() {
 		WCSSOT_Logger::debug( 'Initialising the main WCSSOT plugin class.' );
+		do_action( 'wcssot_before_init', $this );
 		$this->initialise_properties();
 		$this->initialise_hooks();
+		do_action( 'wcssot_after_ini', $this );
 	}
 
 	/**
@@ -97,10 +99,10 @@ final class WCSSOT {
 
 			return;
 		}
-		$this->set_api( new WCSSOT_API_Manager(
+		$this->set_api( apply_filters( 'wcssot_set_default_api', new WCSSOT_API_Manager(
 			$this->get_option( 'wcssot_api_base_url' ),
 			$this->get_option( 'wcssot_api_access_key' )
-		) );
+		), $this ) );
 		do_action( 'wcssot_after_initialise_properties', $this );
 	}
 
@@ -161,7 +163,7 @@ final class WCSSOT {
 		do_action( 'wcssot_before_initialise_hooks', $this );
 		WCSSOT_Logger::debug( 'Initialising hooks for the WCSSOT main class.' );
 		add_action( 'plugins_loaded', [ $this, 'load_textdomain' ] );
-		if ( is_admin() ) {
+		if ( is_admin() && apply_filters( 'wcssot_add_admin_action_hooks', true, $this ) ) {
 			WCSSOT_Logger::debug( 'Initialising hooks for the administration panel.' );
 			add_action( 'admin_menu', [ $this, 'add_admin_menu' ] );
 			add_action( 'admin_init', [ $this, 'register_admin_settings' ] );
@@ -679,8 +681,8 @@ final class WCSSOT {
 		if ( $hook !== 'toplevel_page_wcssot' ) {
 			return;
 		}
-		do_action( 'wcssot_before_enqueue_admin_scripts', $this );
 		WCSSOT_Logger::debug( "Enqueueing all necessary scripts and styles for the administration panel page." );
+		do_action( 'wcssot_before_enqueue_admin_scripts', $this );
 		wp_enqueue_style(
 			'wcssot_admin_css',
 			plugins_url( 'admin/css/styles.css', WCSSOT_PLUGIN_FILE )
@@ -733,7 +735,10 @@ final class WCSSOT {
 		$api_access_key         = trim( $_POST['wcssot_api_access_key'] );
 		$tracking_page_base_url = rtrim( trim( $_POST['wcssot_tracking_page_base_url'] ), '/' );
 
-		if ( ! wc_is_valid_url( $api_base_url ) ) {
+		if (
+			! wc_is_valid_url( $api_base_url )
+			|| ! apply_filters( 'wcssot_is_api_base_url_valid', true, $api_base_url, $input, $this )
+		) {
 			add_settings_error( 'wcssot', 'wcssot_error', sprintf( esc_html__(
 				'The field "%s" contains an invalid URL.',
 				'woocommerce-seven-senders-order-tracking'
@@ -743,7 +748,20 @@ final class WCSSOT {
 			return $input;
 		}
 
-		if ( ! wc_is_valid_url( $tracking_page_base_url ) ) {
+		if ( ! apply_filters( 'wcssot_is_api_access_key_valid', true, $api_access_key, $input, $this ) ) {
+			add_settings_error( 'wcssot', 'wcssot_error', sprintf( esc_html__(
+				'The field "%s" is invalid.',
+				'woocommerce-seven-senders-order-tracking'
+			), 'API Access Key' ) );
+			WCSSOT_Logger::error( "The 'API Access Key' field is invalid." );
+
+			return $input;
+		}
+
+		if (
+			! wc_is_valid_url( $tracking_page_base_url )
+			|| ! apply_filters( 'wcssot_is_tracking_page_base_url_valid', true, $tracking_page_base_url, $input, $this )
+		) {
 			add_settings_error( 'wcssot', 'wcssot_error', sprintf( esc_html__(
 				'The field "%s" contains an invalid URL.',
 				'woocommerce-seven-senders-order-tracking'
@@ -777,9 +795,8 @@ final class WCSSOT {
 	 * @throws Exception
 	 */
 	public function export_shipment( $order_id, $order ) {
-		do_action( 'wcssot_before_export_shipment', $this );
 		WCSSOT_Logger::debug( 'Exporting shipment for order #' . $order_id . '.' );
-
+		do_action( 'wcssot_before_export_shipment', $order, $this );
 		if ( ! empty( $order->get_meta( $this->get_order_meta_key( 'wcssot_shipment_exported' ) ) ) ) {
 			WCSSOT_Logger::debug( 'Shipment for order #' . $order_id . ' does not need to be exported.' );
 
@@ -826,7 +843,7 @@ final class WCSSOT {
 		if ( ! $this->get_api()->set_order_state( $order, 'in_preparation' ) ) {
 			return false;
 		}
-		do_action( 'wcssot_after_export_shipment', $this );
+		do_action( 'wcssot_after_export_shipment', $order, $shipment_data, $this );
 
 		return apply_filters( 'wcssot_shipment_exported', true, $order, $shipment_data, $this );
 	}
@@ -842,7 +859,8 @@ final class WCSSOT {
 	 * @return bool
 	 */
 	public function export_order( $order_id, $order ) {
-		do_action( 'wcssot_before_export_order', $this );
+		WCSSOT_Logger::debug( 'Exporting order #' . $order_id . '.' );
+		do_action( 'wcssot_before_export_order', $order, $this );
 		if (
 			! $order->needs_processing()
 			|| ! empty( $order->get_meta( $this->get_order_meta_key( 'wcssot_order_exported' ) ) )
@@ -878,7 +896,7 @@ final class WCSSOT {
 		if ( ! $this->get_api()->set_order_state( $order, 'in_production' ) ) {
 			return false;
 		}
-		do_action( 'wcssot_after_export_order', $this );
+		do_action( 'wcssot_after_export_order', $order, $this );
 
 		return apply_filters( 'wcssot_order_exported', true, $order, $order_data, $this );
 	}
@@ -918,7 +936,6 @@ final class WCSSOT {
 	 */
 	private function get_tracking_link( $order_number ) {
 		$link = '';
-
 		$base_url = $this->get_option( 'wcssot_tracking_page_base_url', '' );
 		if ( ! empty( $base_url ) && ! empty( $order_number ) ) {
 			$link = $base_url . '/' . $order_number;
