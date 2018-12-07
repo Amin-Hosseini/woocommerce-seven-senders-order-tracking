@@ -85,7 +85,12 @@ class WCSSOT_API_Manager {
 		WCSSOT_Logger::debug( 'Fetching orders from the API.' );
 		do_action( 'wcssot_api_manager_before_get_orders', $params, $this );
 
-		return apply_filters( 'wcssot_api_manager_get_orders', $this->request( [], 'orders', 'GET', $params ), $params, $this );
+		return apply_filters(
+			'wcssot_api_manager_get_orders',
+			$this->request( [], 'orders', 'GET', $params ),
+			$params,
+			$this
+		);
 	}
 
 	/**
@@ -126,7 +131,9 @@ class WCSSOT_API_Manager {
 		}
 		$response_code = wp_remote_retrieve_response_code( $response );
 		if ( $response_code === 401 && self::$recursion_lock ++ < 5 ) {
-			WCSSOT_Logger::debug( 'Attempting to authenticate with the Seven Senders API. (Try #' . self::$recursion_lock . ')' );
+			WCSSOT_Logger::debug(
+				'Attempting to authenticate with the Seven Senders API. (Try #' . self::$recursion_lock . ')'
+			);
 			$this->authenticate();
 
 			return $this->request( $data, $endpoint, $method );
@@ -137,7 +144,16 @@ class WCSSOT_API_Manager {
 		}
 		do_action( 'wcssot_api_manager_after_request', $data, $endpoint, $method, $params, $authenticate, $this );
 
-		return apply_filters( 'wcssot_api_manager_request', $response, $data, $endpoint, $method, $params, $authenticate, $this );
+		return apply_filters(
+			'wcssot_api_manager_request',
+			$response,
+			$data,
+			$endpoint,
+			$method,
+			$params,
+			$authenticate,
+			$this
+		);
 	}
 
 	/**
@@ -236,7 +252,11 @@ class WCSSOT_API_Manager {
 	 * @return void
 	 */
 	public function set_authorization_bearer( $authorization_bearer ) {
-		$this->authorization_bearer = apply_filters( 'wcssot_api_manager_set_authorization_bearer', $authorization_bearer, $this );
+		$this->authorization_bearer = apply_filters(
+			'wcssot_api_manager_set_authorization_bearer',
+			$authorization_bearer,
+			$this
+		);
 	}
 
 	/**
@@ -299,7 +319,9 @@ class WCSSOT_API_Manager {
 
 			return false;
 		}
-		WCSSOT_Logger::debug( 'Successfully created the order and received the following response: ' . $response['body'] );
+		WCSSOT_Logger::debug(
+			'Successfully created the order and received the following response: ' . $response['body']
+		);
 		do_action( 'wcssot_api_manager_after_create_order', $response, $data, $this );
 
 		return apply_filters( 'wcssot_api_manager_created_order', true, $response, $data, $this );
@@ -329,7 +351,10 @@ class WCSSOT_API_Manager {
 
 			return false;
 		}
-		WCSSOT_Logger::debug( 'Successfully set the order state to "' . $state . '" and received the following response: ' . $response['body'] );
+		WCSSOT_Logger::debug(
+			'Successfully set the order state to "' . $state . '" and received the following response: '
+			. $response['body']
+		);
 		do_action( 'wcssot_api_manager_after_set_order_state', $response, $order, $state, $this );
 
 		return apply_filters( 'wcssot_api_manager_set_order_state', true, $response, $order, $state, $this );
@@ -371,7 +396,11 @@ class WCSSOT_API_Manager {
 			}
 		}
 
-		return apply_filters( 'wcssot_api_manager_get_supported_carriers', self::$supported_carriers = $carriers, $this );
+		return apply_filters(
+			'wcssot_api_manager_get_supported_carriers',
+			self::$supported_carriers = $carriers,
+			$this
+		);
 	}
 
 	/**
@@ -385,7 +414,7 @@ class WCSSOT_API_Manager {
 	 */
 	public function create_shipment( $data ) {
 		WCSSOT_Logger::debug( 'Creating a new shipment entry for order #' . $data['order_id'] . '.' );
-		do_action('wcssot_api_manager_before_create_shipment', $data, $this);
+		do_action( 'wcssot_api_manager_before_create_shipment', $data, $this );
 		try {
 			$response = $this->request( $data, 'shipments', 'POST' );
 		} catch ( Exception $exception ) {
@@ -393,9 +422,11 @@ class WCSSOT_API_Manager {
 
 			return false;
 		}
-		WCSSOT_Logger::debug( 'Successfully created the shipment and received the following response: ' . $response['body'] );
-		do_action('wcssot_api_manager_after_create_shipment', $response, $data, $this);
+		WCSSOT_Logger::debug(
+			'Successfully created the shipment and received the following response: ' . $response['body']
+		);
+		do_action( 'wcssot_api_manager_after_create_shipment', $response, $data, $this );
 
-		return apply_filters('wcssot_api_manager_created_shipment', true, $response, $data, $this);
+		return apply_filters( 'wcssot_api_manager_created_shipment', true, $response, $data, $this );
 	}
 }
