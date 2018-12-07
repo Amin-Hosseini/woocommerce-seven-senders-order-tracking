@@ -84,8 +84,9 @@ final class WCSSOT {
 			'wcssot_tracking_page_base_url',
 		], $this ) );
 		$this->set_order_meta_keys( apply_filters( 'wcssot_set_default_order_meta_keys', [
-			'wcssot_shipment_exported'      => 'wcssot_shipment_exported',
+			'wcssot_order_exported'         => 'wcssot_order_exported',
 			'wcssot_order_tracking_link'    => 'wcssot_order_tracking_link',
+			'wcssot_shipment_exported'      => 'wcssot_shipment_exported',
 			'wcssot_shipping_carrier'       => 'wcssot_shipping_carrier',
 			'wcssot_shipping_tracking_code' => 'wcssot_shipping_tracking_code',
 		], $this ) );

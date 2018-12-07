@@ -159,7 +159,7 @@ class WCSSOT_API_Manager {
 		if (
 		! apply_filters(
 			'wcssot_api_manager_is_valid_response_code',
-			(
+			! (
 				$response_code < 200 || $response_code > 299
 			),
 			$response_code,
