@@ -34,9 +34,9 @@ The base URL of your Seven Senders account. It's something like `https://[COMPAN
 ### Workflow
 In order to use the plugin in all its capacity, you will have to adhere to the following workflow:
 
-0. When an order is placed by your customer, and its status changes to `Processing`, the plugin will export the order data to the Seven Senders API and set the remote order state to `in_preparation`.
-0. Before you change the order status to `Completed`, you will have to set the order meta keys `wcssot_shipping_carrier` with a supported shipping carrier identifier (e.g.: `dhl`, `ups`, `dpd`, etc.) and `wcssot_shipping_tracking_code` with the corresponding tracking code provided by your shipping carrier.
-0. When the order status changes to `Completed` and the meta keys above are set and valid, the shipment will be exported and the remote order state will change to `in_production`.
+1. When an order is placed by your customer, and its status changes to `Processing`, the plugin will export the order data to the Seven Senders API and set the remote order state to `in_preparation`.
+2. Before you change the order status to `Completed`, you will have to set the order meta keys `wcssot_shipping_carrier` with a supported shipping carrier identifier (e.g.: `dhl`, `ups`, `dpd`, etc.) and `wcssot_shipping_tracking_code` with the corresponding tracking code provided by your shipping carrier.
+3. When the order status changes to `Completed` and the meta keys above are set and valid, the shipment will be exported and the remote order state will change to `in_production`.
 
 #### Notice
 The planned pickup time for the shipment is calculated as the next business day.
