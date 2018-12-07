@@ -67,8 +67,10 @@ class WCSSOT_API_Manager {
 	 */
 	public function __construct( $api_base_url, $api_access_key ) {
 		WCSSOT_Logger::debug( 'Initialising the API manager class.' );
+		do_action( 'wcssot_api_manager_before_init', $api_base_url, $api_access_key, $this );
 		$this->set_api_base_url( $api_base_url );
 		$this->set_api_access_key( $api_access_key );
+		do_action( 'wcssot_api_manager_after_init', $api_base_url, $api_access_key, $this );
 	}
 
 	/**
@@ -83,8 +85,14 @@ class WCSSOT_API_Manager {
 	 */
 	public function get_orders( $params ) {
 		WCSSOT_Logger::debug( 'Fetching orders from the API.' );
+		do_action( 'wcssot_api_manager_before_get_orders', $params, $this );
 
-		return $this->request( [], 'orders', 'GET', $params );
+		return apply_filters(
+			'wcssot_api_manager_get_orders',
+			$this->request( [], 'orders', 'GET', $params ),
+			$params,
+			$this
+		);
 	}
 
 	/**
@@ -103,38 +111,82 @@ class WCSSOT_API_Manager {
 	 */
 	private function request( $data, $endpoint, $method, $params = [], $authenticate = true ) {
 		WCSSOT_Logger::debug( 'Initialising request to the API for the "' . $endpoint . '" endpoint.' );
+		do_action( 'wcssot_api_manager_before_request', $data, $endpoint, $method, $params, $authenticate, $this );
 		if ( $authenticate && ! self::$authenticated ) {
 			$this->authenticate();
 		}
 		$headers  = array_merge( [
 			'Content-Type' => 'application/json'
 		], $this->get_authorization_headers() );
-		$response = wp_safe_remote_request( $this->get_endpoint_url( $endpoint, $params ), [
-			'method'     => $method,
-			'headers'    => $headers,
-			'body'       => ! empty( $data ) ? json_encode( $data ) : '',
-			'timeout'    => 10,
-			'blocking'   => true,
-			'user-agent' => 'WooCommerce ' . WC()->version . '; ' . get_site_url(),
-		] );
+		$response = wp_safe_remote_request( $this->get_endpoint_url( $endpoint, $params ), apply_filters(
+			'wcssot_api_manager_request_arguments',
+			[
+				'method'     => $method,
+				'headers'    => $headers,
+				'body'       => ! empty( $data ) ? json_encode( $data ) : '',
+				'timeout'    => 10,
+				'blocking'   => true,
+				'user-agent' => 'WooCommerce ' . WC()->version . '; ' . get_site_url(),
+			], $data, $endpoint, $method, $params, $authenticate, $this ) );
 		WCSSOT_Logger::debug( 'Sent request to the "' . $endpoint . '" endpoint.' );
 		if ( is_wp_error( $response ) ) {
 			WCSSOT_Logger::error( 'The request to the "' . $endpoint . '" endpoint resulted in an error.' );
 			throw new Exception( $response->get_error_message() );
 		}
 		$response_code = wp_remote_retrieve_response_code( $response );
-		if ( $response_code === 401 && self::$recursion_lock ++ < 5 ) {
-			WCSSOT_Logger::debug( 'Attempting to authenticate with the Seven Senders API. (Try #' . self::$recursion_lock . ')' );
+		if (
+			$response_code === 401
+			&& self::$recursion_lock ++ < apply_filters(
+				'wcssot_api_manager_authentication_tries',
+				5,
+				self::$recursion_lock,
+				$response,
+				$data,
+				$endpoint,
+				$method,
+				$params,
+				$authenticate,
+				$this
+			)
+		) {
+			WCSSOT_Logger::debug(
+				'Attempting to authenticate with the Seven Senders API. (Try #' . self::$recursion_lock . ')'
+			);
 			$this->authenticate();
 
 			return $this->request( $data, $endpoint, $method );
 		}
-		if ( $response_code < 200 || $response_code > 299 ) {
+		if (
+		! apply_filters(
+			'wcssot_api_manager_is_valid_response_code',
+			(
+				$response_code < 200 || $response_code > 299
+			),
+			$response_code,
+			$response,
+			$data,
+			$endpoint,
+			$method,
+			$params,
+			$authenticate,
+			$this
+		)
+		) {
 			WCSSOT_Logger::error( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
 			throw new Exception( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
 		}
+		do_action( 'wcssot_api_manager_after_request', $data, $endpoint, $method, $params, $authenticate, $this );
 
-		return $response;
+		return apply_filters(
+			'wcssot_api_manager_request',
+			$response,
+			$data,
+			$endpoint,
+			$method,
+			$params,
+			$authenticate,
+			$this
+		);
 	}
 
 	/**
@@ -147,10 +199,11 @@ class WCSSOT_API_Manager {
 	 */
 	private function authenticate() {
 		WCSSOT_Logger::debug( 'Authenticating the app to the Seven Senders API.' );
+		do_action( 'wcssot_api_manager_before_authenticate', $this );
 		try {
-			$response = $this->request( [
+			$response = $this->request( apply_filters( 'wcssot_api_manager_authenticate_request_params', [
 				'access_key' => $this->get_api_access_key()
-			], 'token', 'POST', [], false );
+			], $this ), 'token', 'POST', [], false );
 		} catch ( Exception $exception ) {
 			WCSSOT_Logger::error( 'Could not authenticate app with access key "' . $this->get_api_access_key() . '".' );
 
@@ -167,6 +220,7 @@ class WCSSOT_API_Manager {
 		}
 		$this->set_authorization_bearer( $body['token'] );
 		self::$authenticated = true;
+		do_action( 'wcssot_api_manager_after_authenticate', $this );
 	}
 
 	/**
@@ -177,7 +231,7 @@ class WCSSOT_API_Manager {
 	 * @return string
 	 */
 	public function get_api_access_key() {
-		return $this->api_access_key;
+		return apply_filters( 'wcssot_api_manager_get_api_access_key', $this->api_access_key, $this );
 	}
 
 	/**
@@ -190,7 +244,7 @@ class WCSSOT_API_Manager {
 	 * @return void
 	 */
 	public function set_api_access_key( $api_access_key ) {
-		$this->api_access_key = $api_access_key;
+		$this->api_access_key = apply_filters( 'wcssot_api_manager_set_api_access_key', $api_access_key, $this );
 	}
 
 	/**
@@ -207,7 +261,7 @@ class WCSSOT_API_Manager {
 			$headers['Authorization'] = 'Bearer ' . $this->get_authorization_bearer();
 		}
 
-		return $headers;
+		return apply_filters( 'wcssot_api_manager_get_authorization_headers', $headers, $this );
 	}
 
 	/**
@@ -218,7 +272,7 @@ class WCSSOT_API_Manager {
 	 * @return string
 	 */
 	public function get_authorization_bearer() {
-		return $this->authorization_bearer;
+		return apply_filters( 'wcssot_api_manager_get_authorization_bearer', $this->authorization_bearer, $this );
 	}
 
 	/**
@@ -231,7 +285,11 @@ class WCSSOT_API_Manager {
 	 * @return void
 	 */
 	public function set_authorization_bearer( $authorization_bearer ) {
-		$this->authorization_bearer = $authorization_bearer;
+		$this->authorization_bearer = apply_filters(
+			'wcssot_api_manager_set_authorization_bearer',
+			$authorization_bearer,
+			$this
+		);
 	}
 
 	/**
@@ -250,7 +308,7 @@ class WCSSOT_API_Manager {
 			$url .= '?' . http_build_query( $params );
 		}
 
-		return $url;
+		return apply_filters( 'wcssot_api_manager_get_endpoint_url', $url, $endpoint, $params, $this );
 	}
 
 	/**
@@ -261,7 +319,7 @@ class WCSSOT_API_Manager {
 	 * @return string
 	 */
 	public function get_api_base_url() {
-		return $this->api_base_url;
+		return apply_filters( 'wcssot_apimanager_get_api_base_url', $this->api_base_url, $this );
 	}
 
 	/**
@@ -274,7 +332,7 @@ class WCSSOT_API_Manager {
 	 * @return void
 	 */
 	public function set_api_base_url( $api_base_url ) {
-		$this->api_base_url = $api_base_url;
+		$this->api_base_url = apply_filters( 'wcssot_api_manager_set_api_base_url', $api_base_url, $this );
 	}
 
 	/**
@@ -286,6 +344,7 @@ class WCSSOT_API_Manager {
 	 */
 	public function create_order( $data ) {
 		WCSSOT_Logger::debug( 'Creating a new order entry for order #' . $data['order_id'] . '.' );
+		do_action( 'wcssot_api_manager_before_create_order', $data, $this );
 		try {
 			$response = $this->request( $data, 'orders', 'POST' );
 		} catch ( Exception $exception ) {
@@ -293,9 +352,12 @@ class WCSSOT_API_Manager {
 
 			return false;
 		}
-		WCSSOT_Logger::debug( 'Successfully created the order and received the following response: ' . $response['body'] );
+		WCSSOT_Logger::debug(
+			'Successfully created the order and received the following response: ' . $response['body']
+		);
+		do_action( 'wcssot_api_manager_after_create_order', $response, $data, $this );
 
-		return true;
+		return apply_filters( 'wcssot_api_manager_created_order', true, $response, $data, $this );
 	}
 
 	/**
@@ -310,20 +372,25 @@ class WCSSOT_API_Manager {
 	 */
 	public function set_order_state( $order, $state ) {
 		WCSSOT_Logger::debug( 'Setting order state to "' . $state . '" for order #' . $order->get_id() . '.' );
+		do_action( 'wcssot_api_manager_before_set_order_state', $order, $state, $this );
 		try {
-			$response = $this->request( [
+			$response = $this->request( apply_filters( 'wcssot_api_manager_set_order_state_request_params', [
 				'order_id' => $order->get_order_number(),
 				'state'    => $state,
 				'datetime' => current_time( 'c' ),
-			], 'order_states', 'POST' );
+			], $order, $state, $this ), 'order_states', 'POST' );
 		} catch ( Exception $exception ) {
 			WCSSOT_Logger::error( 'Could not set state for order #' . $order->get_id() . '.' );
 
 			return false;
 		}
-		WCSSOT_Logger::debug( 'Successfully set the order state to "' . $state . '" and received the following response: ' . $response['body'] );
+		WCSSOT_Logger::debug(
+			'Successfully set the order state to "' . $state . '" and received the following response: '
+			. $response['body']
+		);
+		do_action( 'wcssot_api_manager_after_set_order_state', $response, $order, $state, $this );
 
-		return true;
+		return apply_filters( 'wcssot_api_manager_set_order_state', true, $response, $order, $state, $this );
 	}
 
 	/**
@@ -335,30 +402,38 @@ class WCSSOT_API_Manager {
 	 */
 	public function get_supported_carriers() {
 		WCSSOT_Logger::debug( 'Trying to get supported carriers.' );
+		do_action( 'wcssot_api_manager_before_get_supported_carriers', $this );
 		if ( ! empty( self::$supported_carriers ) ) {
 			WCSSOT_Logger::debug( 'Returning already fetched supported carriers.' );
 
 			return self::$supported_carriers;
 		}
 		WCSSOT_Logger::debug( 'Trying to fetch supported carriers from Seven Senders.' );
-		$carriers = [];
-		try {
-			$response = $this->request( [], 'carriers', 'GET' );
-			if ( empty( $response['body'] ) ) {
-				throw new Exception( 'Response body is empty.' );
+		$carriers = apply_filters( 'wcssot_api_manager_default_carriers', [], $this );
+		if ( empty( $carriers ) ) {
+			try {
+				$response = $this->request( [], 'carriers', 'GET' );
+				if ( empty( $response['body'] ) ) {
+					throw new Exception( 'Response body is empty.' );
+				}
+				$body = json_decode( $response['body'], true );
+				if ( empty( $body ) ) {
+					throw new Exception( 'Body contents are empty.' );
+				}
+				foreach ( $body as $entry ) {
+					$carriers[ $entry['code'] ] = $entry;
+				}
+				do_action( 'wcssot_api_manager_after_get_supported_carriers', $carriers, $response, $this );
+			} catch ( Exception $exception ) {
+				WCSSOT_Logger::error( 'Could not fetch supported carriers from Seven Senders.' );
 			}
-			$body = json_decode( $response['body'], true );
-			if ( empty( $body ) ) {
-				throw new Exception( 'Body contents are empty.' );
-			}
-			foreach ( $body as $entry ) {
-				$carriers[ $entry['code'] ] = $entry;
-			}
-		} catch ( Exception $exception ) {
-			WCSSOT_Logger::error( 'Could not fetch supported carriers from Seven Senders.' );
 		}
 
-		return self::$supported_carriers = $carriers;
+		return apply_filters(
+			'wcssot_api_manager_get_supported_carriers',
+			self::$supported_carriers = $carriers,
+			$this
+		);
 	}
 
 	/**
@@ -372,6 +447,7 @@ class WCSSOT_API_Manager {
 	 */
 	public function create_shipment( $data ) {
 		WCSSOT_Logger::debug( 'Creating a new shipment entry for order #' . $data['order_id'] . '.' );
+		do_action( 'wcssot_api_manager_before_create_shipment', $data, $this );
 		try {
 			$response = $this->request( $data, 'shipments', 'POST' );
 		} catch ( Exception $exception ) {
@@ -379,8 +455,11 @@ class WCSSOT_API_Manager {
 
 			return false;
 		}
-		WCSSOT_Logger::debug( 'Successfully created the shipment and received the following response: ' . $response['body'] );
+		WCSSOT_Logger::debug(
+			'Successfully created the shipment and received the following response: ' . $response['body']
+		);
+		do_action( 'wcssot_api_manager_after_create_shipment', $response, $data, $this );
 
-		return true;
+		return apply_filters( 'wcssot_api_manager_created_shipment', true, $response, $data, $this );
 	}
 }

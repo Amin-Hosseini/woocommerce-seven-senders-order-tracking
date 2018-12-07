@@ -89,6 +89,6 @@ function wcssot_init() {
 function wcssot_install() {
 	// Adds the default settings to the option.
 	add_option( 'wcssot_settings', [
-		'wcssot_api_base_url' => 'https://analytics-api.7senders.com/v2/'
+		'wcssot_api_base_url' => 'https://api.sevensenders.com/v2'
 	] );
 }
