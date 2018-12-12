@@ -52,8 +52,9 @@ if ( ! defined( 'WCSSOT_PLUGIN_FILE' ) ) {
  * Hooks after WooCommerce has finished loading and initialises the main plugin class.
  *
  * @since 0.0.1
+ * @since 1.1.0 Changed action hook to `plugins_loaded` from `woocommerce_loaded`.
  */
-add_action( 'woocommerce_loaded', 'wcssot_init' );
+add_action( 'plugins_loaded', 'wcssot_init' );
 
 /**
  * Registers the activation hook to run after the plugin has been activated.
@@ -70,6 +71,9 @@ register_activation_hook( __FILE__, 'wcssot_install' );
  * @return void
  */
 function wcssot_init() {
+    if (! defined('WC_VERSION') || version_compare(WC_VERSION, '3.5.0') < 0) {
+        return;
+    }
 	try {
 		spl_autoload_register( 'wcssot_autoloader' );
 	} catch ( Exception $exception ) {

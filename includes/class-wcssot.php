@@ -90,7 +90,7 @@ final class WCSSOT {
 		 *
 		 * @param WCSSOT $wcssot The current class object.
 		 */
-		do_action( 'wcssot_after_ini', $this );
+		do_action( 'wcssot_after_init', $this );
 	}
 
 	/**
