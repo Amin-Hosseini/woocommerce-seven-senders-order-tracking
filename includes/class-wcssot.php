@@ -81,6 +81,7 @@ final class WCSSOT {
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		do_action( 'wcssot_before_init', $this );
+		$this->load_textdomain();
 		$this->initialise_properties();
 		$this->initialise_hooks();
 		/**
@@ -266,7 +267,6 @@ final class WCSSOT {
 		 */
 		do_action( 'wcssot_before_initialise_hooks', $this );
 		WCSSOT_Logger::debug( 'Initialising hooks for the WCSSOT main class.' );
-		add_action( 'plugins_loaded', [ $this, 'load_textdomain' ] );
 		/**
 		 * Filters whether to add the administration hooks.
 		 *
