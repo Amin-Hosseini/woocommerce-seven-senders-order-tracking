@@ -275,7 +275,7 @@ class WCSSOT_Options_Manager {
 		 * @param WCSSOT $wcssot The main plugin class object.
 		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
-		return apply_filters( 'wcssot_settings_exist', $exist, $this );
+		return apply_filters( 'wcssot_settings_exist', $exist, $this->wcssot, $this );
 	}
 
 	/**
@@ -540,11 +540,9 @@ class WCSSOT_Options_Manager {
 
 			return $input;
 		}
-
 		$api_base_url           = rtrim( trim( $_POST['wcssot_api_base_url'] ), '/' );
 		$api_access_key         = trim( $_POST['wcssot_api_access_key'] );
 		$tracking_page_base_url = rtrim( trim( $_POST['wcssot_tracking_page_base_url'] ), '/' );
-
 		/**
 		 * Filters whether the API Base URL input is valid.
 		 *
@@ -573,7 +571,6 @@ class WCSSOT_Options_Manager {
 
 			return $input;
 		}
-
 		/**
 		 * Filters whether the API Access Key field is valid.
 		 *
@@ -595,7 +592,6 @@ class WCSSOT_Options_Manager {
 
 			return $input;
 		}
-
 		/**
 		 * Filters whether the Tracking Page Base URL field is valid.
 		 *
@@ -624,16 +620,13 @@ class WCSSOT_Options_Manager {
 
 			return $input;
 		}
-
 		$input['wcssot_api_base_url']           = $api_base_url;
 		$input['wcssot_api_access_key']         = $api_access_key;
 		$input['wcssot_tracking_page_base_url'] = $tracking_page_base_url;
-
 		add_settings_error( 'wcssot', 'wcssot_success', esc_html__(
 			'The settings have been saved successfully!',
 			'woocommerce-seven-senders-order-tracking'
 		), 'updated' );
-
 		/**
 		 * Filters the sanitised input list.
 		 *
