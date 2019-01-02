@@ -310,31 +310,13 @@ final class WCSSOT {
 	 * Returns whether the required settings have been set.
 	 *
 	 * @since 0.1.0
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->settings_exist().
+	 * @see WCSSOT_Options_Manager->settings_exist()
 	 *
 	 * @return bool Whether the required settings are populated.
 	 */
 	private function settings_exist() {
-		WCSSOT_Logger::debug( 'Checking if all required settings exist.' );
-		$exist            = true;
-		$options_required = $this->get_options_manager()->get_options_required();
-		$options          = $this->get_options_manager()->get_options();
-		foreach ( $options_required as $option_required ) {
-			if ( empty( $options[ $option_required ] ) ) {
-				WCSSOT_Logger::error( "The setting '$option_required' is missing from the options!" );
-				$exist = false;
-				break;
-			}
-		}
-
-		/**
-		 * Filters the decision whether the settings exist.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param bool $exist Whether the required settings exist.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		return apply_filters( 'wcssot_settings_exist', $exist, $this );
+		return $this->get_options_manager()->settings_exist();
 	}
 
 	/**

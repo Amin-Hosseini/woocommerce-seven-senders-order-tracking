@@ -103,7 +103,7 @@ class WCSSOT_Options_Manager {
 		 * @since 1.2.0 Moved from the main plugin class and added an extra parameter for the current object instance.
 		 *
 		 * @param array $options The default options required.
-		 * @param WCSSOT $wcssot The current class object.
+		 * @param WCSSOT $wcssot The main plugin class object.
 		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
 		$this->set_options_required( apply_filters( 'wcssot_set_default_options_required', [
@@ -137,7 +137,7 @@ class WCSSOT_Options_Manager {
 		 * @since 1.2.0 Moved from the main plugin class and added an extra parameter for the current object instance.
 		 *
 		 * @param array $options The list of options required.
-		 * @param WCSSOT $wcssot The current class object.
+		 * @param WCSSOT $wcssot The main plugin class object.
 		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
 		return apply_filters( 'wcssot_get_options_required', $this->options_required, $this->wcssot, $this );
@@ -160,7 +160,7 @@ class WCSSOT_Options_Manager {
 		 * @since 1.2.0 Moved from the main plugin class and added an extra parameter for the current object instance.
 		 *
 		 * @param array $options The list of options required to set.
-		 * @param WCSSOT $wcssot The current class object.
+		 * @param WCSSOT $wcssot The main plugin class object.
 		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
 		$this->options_required = apply_filters(
@@ -193,7 +193,7 @@ class WCSSOT_Options_Manager {
 		 * @param mixed $value The option requested.
 		 * @param string $option The option key requested.
 		 * @param mixed $default The default value to return in case the option does not exist.
-		 * @param WCSSOT $wcssot The current class object.
+		 * @param WCSSOT $wcssot The main plugin class object.
 		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
 		return apply_filters(
@@ -221,7 +221,7 @@ class WCSSOT_Options_Manager {
 		 * @since 1.2.0 Moved from the main plugin class and added an extra parameter for the current object instance.
 		 *
 		 * @param array $options The list of the plugin options.
-		 * @param WCSSOT $wcssot The current class object.
+		 * @param WCSSOT $wcssot The main plugin class object.
 		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
 		return apply_filters( 'wcssot_get_options', $this->options, $this->wcssot, $this );
@@ -244,9 +244,42 @@ class WCSSOT_Options_Manager {
 		 * @since 1.2.0 Moved from the main plugin class and added an extra parameter for the current object instance.
 		 *
 		 * @param array $options The options to be set.
-		 * @param WCSSOT $wcssot The current class object.
+		 * @param WCSSOT $wcssot The main plugin class object.
 		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
 		$this->options = apply_filters( 'wcssot_set_options', $options, $this->wcssot, $this );
+	}
+
+	/**
+	 * Returns whether the required settings have been set.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @return bool Whether the required settings are populated.
+	 */
+	public function settings_exist() {
+		WCSSOT_Logger::debug( 'Checking if all required settings exist.' );
+		$exist            = true;
+		$options_required = $this->get_options_required();
+		$options          = $this->get_options();
+		foreach ( $options_required as $option_required ) {
+			if ( empty( $options[ $option_required ] ) ) {
+				WCSSOT_Logger::error( "The setting '$option_required' is missing from the options!" );
+				$exist = false;
+				break;
+			}
+		}
+
+		/**
+		 * Filters the decision whether the settings exist.
+		 *
+		 * @since 0.6.0
+		 * @since 1.2.0 Moved from the main plugin class and added an extra parameter for the current object instance.
+		 *
+		 * @param bool $exist Whether the required settings exist.
+		 * @param WCSSOT $wcssot The main plugin class object.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		return apply_filters( 'wcssot_settings_exist', $exist, $this );
 	}
 }
