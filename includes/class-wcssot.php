@@ -290,7 +290,7 @@ final class WCSSOT {
 		/**
 		 * Checks if all required settings are populated.
 		 */
-		if ( ! $this->settings_exist() ) {
+		if ( ! $this->get_options_manager()->settings_exist() ) {
 			return;
 		}
 		add_action( 'woocommerce_order_status_processing', [ $this, 'export_order' ], 10, 2 );
