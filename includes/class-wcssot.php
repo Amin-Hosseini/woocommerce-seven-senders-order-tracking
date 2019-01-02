@@ -41,19 +41,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @class WCSSOT
  */
 final class WCSSOT {
-	/**
-	 * @var array $options The list of options set/used by the plugin.
-	 * @deprecated 1.2.0 Use the options manager class (WCSSOT_Options_Manager).
-	 * @see WCSSOT_Options_Manager
-	 */
-	private $options = [];
-
-	/**
-	 * @var array $options_required A list of option IDs that are required by the plugin.
-	 * @deprecated 1.2.0 Use the options manager class (WCSSOT_Options_Manager).
-	 * @see WCSSOT_Options_Manager
-	 */
-	private $options_required = [];
 
 	/**
 	 * @var DateTimeZone $timezone The default timezone to use for all date objects in the plugin.
