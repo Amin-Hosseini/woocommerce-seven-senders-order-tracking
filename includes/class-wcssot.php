@@ -67,6 +67,11 @@ final class WCSSOT {
 	private $order_meta_keys = [];
 
 	/**
+	 * @var WCSSOT_Options_Manager $options_manager The instance of the options manger class.
+	 */
+	private $options_manager;
+
+	/**
 	 * WCSSOT constructor.
 	 *
 	 * @since 0.0.1
@@ -143,6 +148,17 @@ final class WCSSOT {
 		 */
 		do_action( 'wcssot_before_initialise_properties', $this );
 		/**
+		 * Filters the default options manager instance.
+		 *
+		 * @since 1.2.0
+		 *
+		 * @param WCSSOT_Options_Manager $instance The options manager instance.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		$this->set_options_manager(
+			apply_filters( 'wcssot_set_default_options_manager', new WCSSOT_Options_Manager(), $this )
+		);
+		/**
 		 * Filters the default options required by the plugin.
 		 *
 		 * @since 0.6.0
@@ -208,6 +224,27 @@ final class WCSSOT {
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		do_action( 'wcssot_after_initialise_properties', $this );
+	}
+
+	/**
+	 * Sets the instance of the options manager class.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param WCSSOT_Options_Manager $instance The instance of the options manager class.
+	 *
+	 * @return void
+	 */
+	public function set_options_manager( $instance ) {
+		/**
+		 * Filters the instance of the options manager class.
+		 *
+		 * @since 1.2.0
+		 *
+		 * @param WCSSOT_Options_Manager $instance The instance of the options manager class.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		$this->options_manager = apply_filters( 'wcssot_set_options_manager', $instance, $this );
 	}
 
 	/**
@@ -421,25 +458,25 @@ final class WCSSOT {
 
 		/**
 		 * Filters the tracking information text.
-         *
-         * @since 1.2.0
-         *
-         * @param string $text The already constructed text.
-         * @param string $tracking_link The link to the tracking page with the order's information.
-         * @param string $carrier The carrier name for the shipment.
-         * @param string $tracking_code The tracking code for the shipment.
-         * @param WC_Order $order The order of the shipment.
-         * @param WCSSOT $wcssot The current class object.
+		 *
+		 * @since 1.2.0
+		 *
+		 * @param string $text The already constructed text.
+		 * @param string $tracking_link The link to the tracking page with the order's information.
+		 * @param string $carrier The carrier name for the shipment.
+		 * @param string $tracking_code The tracking code for the shipment.
+		 * @param WC_Order $order The order of the shipment.
+		 * @param WCSSOT $wcssot The current class object.
 		 */
 		$text = apply_filters(
-		        'wcssot_get_tracking_information_text',
-                $text,
-                $tracking_link,
-                $carrier,
-                $tracking_code,
-                $order,
-                $this
-        );
+			'wcssot_get_tracking_information_text',
+			$text,
+			$tracking_link,
+			$carrier,
+			$tracking_code,
+			$order,
+			$this
+		);
 
 		/**
 		 * Filters the contents of the tracking information to render on the customer email.

@@ -37,4 +37,28 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WCSSOT_Options_Manager {
 
+	/**
+	 * WCSSOT_Options_Manager constructor.
+	 *
+	 * @since 1.2.0
+	 */
+	public function __construct() {
+		WCSSOT_Logger::debug( 'Initialising the options manager class.' );
+		/**
+		 * Fires before initialising the WCSSOT_Options_Manager class.
+		 *
+		 * @since 1.2.0
+		 *
+		 * @param WCSSOT_Options_Manager $wcssot_om The current class object.
+		 */
+		do_action( 'wcssot_options_manager_before_init', $this );
+		/**
+		 * Fires after initialising the WCSSOT class.
+		 *
+		 * @since 1.2.0
+		 *
+		 * @param WCSSOT_Options_Manager $wcssot_om The current class object.
+		 */
+		do_action( 'wcssot_options_manager_after_init', $this );
+	}
 }
