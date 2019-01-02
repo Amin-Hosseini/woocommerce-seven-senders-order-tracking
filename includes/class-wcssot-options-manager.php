@@ -167,85 +167,6 @@ class WCSSOT_Options_Manager {
 	}
 
 	/**
-	 * Returns the specified option key from the options property.
-	 *
-	 * @since 1.2.0
-	 *
-	 * @param string $option The option key to get.
-	 * @param mixed $default The default value to return in case the option does not exist.
-	 *
-	 * @return mixed The option value requested.
-	 */
-	public function get_option( $option, $default = null ) {
-		$options = $this->get_options();
-
-		/**
-		 * Filters the option requested.
-		 *
-		 * @since 0.6.0
-		 * @since 1.2.0 Moved from the main plugin class and added an extra parameter for the current object instance.
-		 *
-		 * @param mixed $value The option requested.
-		 * @param string $option The option key requested.
-		 * @param mixed $default The default value to return in case the option does not exist.
-		 * @param WCSSOT $wcssot The main plugin class object.
-		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
-		 */
-		return apply_filters(
-			'wcssot_get_option',
-			( isset( $options[ $option ] ) ? $options[ $option ] : $default ),
-			$option,
-			$default,
-			$this->wcssot,
-			$this
-		);
-	}
-
-	/**
-	 * Returns the options property.
-	 *
-	 * @since 1.2.0
-	 *
-	 * @return array The list of the plugin options.
-	 */
-	public function get_options() {
-		/**
-		 * Filters the plugin options list.
-		 *
-		 * @since 0.6.0
-		 * @since 1.2.0 Moved from the main plugin class and added an extra parameter for the current object instance.
-		 *
-		 * @param array $options The list of the plugin options.
-		 * @param WCSSOT $wcssot The main plugin class object.
-		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
-		 */
-		return apply_filters( 'wcssot_get_options', $this->options, $this->wcssot, $this );
-	}
-
-	/**
-	 * Sets the options property.
-	 *
-	 * @since 1.2.0
-	 *
-	 * @param array $options The options list to set.
-	 *
-	 * @return void
-	 */
-	public function set_options( $options ) {
-		/**
-		 * Filters the options to be set.
-		 *
-		 * @since 0.6.0
-		 * @since 1.2.0 Moved from the main plugin class and added an extra parameter for the current object instance.
-		 *
-		 * @param array $options The options to be set.
-		 * @param WCSSOT $wcssot The main plugin class object.
-		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
-		 */
-		$this->options = apply_filters( 'wcssot_set_options', $options, $this->wcssot, $this );
-	}
-
-	/**
 	 * Returns whether the required settings have been set.
 	 *
 	 * @since 1.2.0
@@ -325,6 +246,50 @@ class WCSSOT_Options_Manager {
 			$this->wcssot,
 			$this
 		);
+	}
+
+	/**
+	 * Returns the options property.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @return array The list of the plugin options.
+	 */
+	public function get_options() {
+		/**
+		 * Filters the plugin options list.
+		 *
+		 * @since 0.6.0
+		 * @since 1.2.0 Moved from the main plugin class and added an extra parameter for the current object instance.
+		 *
+		 * @param array $options The list of the plugin options.
+		 * @param WCSSOT $wcssot The main plugin class object.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		return apply_filters( 'wcssot_get_options', $this->options, $this->wcssot, $this );
+	}
+
+	/**
+	 * Sets the options property.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param array $options The options list to set.
+	 *
+	 * @return void
+	 */
+	public function set_options( $options ) {
+		/**
+		 * Filters the options to be set.
+		 *
+		 * @since 0.6.0
+		 * @since 1.2.0 Moved from the main plugin class and added an extra parameter for the current object instance.
+		 *
+		 * @param array $options The options to be set.
+		 * @param WCSSOT $wcssot The main plugin class object.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		$this->options = apply_filters( 'wcssot_set_options', $options, $this->wcssot, $this );
 	}
 
 	/**
@@ -560,9 +525,10 @@ class WCSSOT_Options_Manager {
 
 			return $input;
 		}
-		$api_base_url           = rtrim( trim( $_POST['wcssot_api_base_url'] ), '/' );
-		$api_access_key         = trim( $_POST['wcssot_api_access_key'] );
-		$tracking_page_base_url = rtrim( trim( $_POST['wcssot_tracking_page_base_url'] ), '/' );
+		$api_base_url                   = rtrim( trim( $_POST['wcssot_api_base_url'] ), '/' );
+		$api_access_key                 = trim( $_POST['wcssot_api_access_key'] );
+		$tracking_page_base_url         = rtrim( trim( $_POST['wcssot_tracking_page_base_url'] ), '/' );
+		$delivery_date_tracking_enabled = isset( $_POST['wcssot_delivery_date_tracking_enabled'] ) ? true : false;
 		/**
 		 * Filters whether the API Base URL input is valid.
 		 *
@@ -640,13 +606,40 @@ class WCSSOT_Options_Manager {
 
 			return $input;
 		}
-		$input['wcssot_api_base_url']           = $api_base_url;
-		$input['wcssot_api_access_key']         = $api_access_key;
-		$input['wcssot_tracking_page_base_url'] = $tracking_page_base_url;
+		/**
+		 * Filters whether the Delivery Date Tracking Enabled field is valid.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param bool $valid Whether the field is valid.
+		 * @param bool $delivery_date_tracking_enabled The value of the field.
+		 * @param array $input The input list to sanitise.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		if ( ! apply_filters(
+			'wcssot_is_delivery_date_tracking_enabled_valid',
+			is_bool( $delivery_date_tracking_enabled ),
+			$delivery_date_tracking_enabled,
+			$input,
+			$this
+		) ) {
+			add_settings_error( 'wcssot', 'wcssot_error', sprintf( esc_html__(
+				'The field "%s" contains an invalid URL.',
+				'woocommerce-seven-senders-order-tracking'
+			), 'Delivery Date Tracking Enabled' ) );
+			WCSSOT_Logger::error( "The 'Delivery Date Tracking Enabled' field is invalid." );
+
+			return $input;
+		}
+		$input['wcssot_api_base_url']                   = $api_base_url;
+		$input['wcssot_api_access_key']                 = $api_access_key;
+		$input['wcssot_tracking_page_base_url']         = $tracking_page_base_url;
+		$input['wcssot_delivery_date_tracking_enabled'] = $delivery_date_tracking_enabled;
 		add_settings_error( 'wcssot', 'wcssot_success', esc_html__(
 			'The settings have been saved successfully!',
 			'woocommerce-seven-senders-order-tracking'
 		), 'updated' );
+
 		/**
 		 * Filters the sanitised input list.
 		 *
@@ -790,6 +783,41 @@ class WCSSOT_Options_Manager {
 		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
 		do_action( 'wcssot_after_render_admin_api_base_url_field', $this->wcssot, $this );
+	}
+
+	/**
+	 * Returns the specified option key from the options property.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param string $option The option key to get.
+	 * @param mixed $default The default value to return in case the option does not exist.
+	 *
+	 * @return mixed The option value requested.
+	 */
+	public function get_option( $option, $default = null ) {
+		$options = $this->get_options();
+
+		/**
+		 * Filters the option requested.
+		 *
+		 * @since 0.6.0
+		 * @since 1.2.0 Moved from the main plugin class and added an extra parameter for the current object instance.
+		 *
+		 * @param mixed $value The option requested.
+		 * @param string $option The option key requested.
+		 * @param mixed $default The default value to return in case the option does not exist.
+		 * @param WCSSOT $wcssot The main plugin class object.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		return apply_filters(
+			'wcssot_get_option',
+			( isset( $options[ $option ] ) ? $options[ $option ] : $default ),
+			$option,
+			$default,
+			$this->wcssot,
+			$this
+		);
 	}
 
 	/**
@@ -944,13 +972,16 @@ class WCSSOT_Options_Manager {
                name="wcssot_delivery_date_tracking_enabled"
                id="wcssot_delivery_date_tracking_enabled"
                class="wcssot_form_field wcssot_form_checkbox"
+			<?php if ( $this->get_option( 'wcssot_delivery_date_tracking_enabled', false ) ) : ?>
+                checked="checked"
+			<?php endif; ?>
         >
 		<?php
 		/**
 		 * Fires after rendering the Delivery Date Tracking Enabled field.
 		 *
 		 * @since 2.0.0
-         *
+		 *
 		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
 		do_action( 'wcssot_after_render_admin_delivery_date_tracking_enabled_field', $this->wcssot, $this );
