@@ -41,15 +41,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @class WCSSOT
  */
 final class WCSSOT {
-	/**
-	 * @var array $options The list of options set/used by the plugin.
-	 */
-	private $options = [];
-
-	/**
-	 * @var array $options_required A list of option IDs that are required by the plugin.
-	 */
-	private $options_required = [];
 
 	/**
 	 * @var DateTimeZone $timezone The default timezone to use for all date objects in the plugin.
@@ -67,6 +58,11 @@ final class WCSSOT {
 	private $order_meta_keys = [];
 
 	/**
+	 * @var WCSSOT_Options_Manager $options_manager The instance of the options manger class.
+	 */
+	private $options_manager;
+
+	/**
 	 * WCSSOT constructor.
 	 *
 	 * @since 0.0.1
@@ -81,6 +77,7 @@ final class WCSSOT {
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		do_action( 'wcssot_before_init', $this );
+		$this->load_textdomain();
 		$this->initialise_properties();
 		$this->initialise_hooks();
 		/**
@@ -91,6 +88,38 @@ final class WCSSOT {
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		do_action( 'wcssot_after_init', $this );
+	}
+
+	/**
+	 * Loads the textdomain for the plugin.
+	 *
+	 * @since 0.0.1
+	 *
+	 * @return void
+	 */
+	public function load_textdomain() {
+		/**
+		 * Fires before loading the text domain.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		do_action( 'wcssot_before_load_textdomain', $this );
+		WCSSOT_Logger::debug( "Loading the 'woocommerce-seven-senders-order-tracking' text domain." );
+		load_plugin_textdomain(
+			'woocommerce-seven-senders-order-tracking',
+			false,
+			plugin_dir_url( WCSSOT_PLUGIN_FILE ) . 'languages/'
+		);
+		/**
+		 * Fires after loading the text domain.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		do_action( 'wcssot_after_load_textdomain', $this );
 	}
 
 	/**
@@ -110,18 +139,16 @@ final class WCSSOT {
 		 */
 		do_action( 'wcssot_before_initialise_properties', $this );
 		/**
-		 * Filters the default options required by the plugin.
+		 * Filters the default options manager instance.
 		 *
-		 * @since 0.6.0
+		 * @since 1.2.0
 		 *
-		 * @param array $options The default options required.
+		 * @param WCSSOT_Options_Manager $instance The options manager instance.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
-		$this->set_options_required( apply_filters( 'wcssot_set_default_options_required', [
-			'wcssot_api_base_url',
-			'wcssot_api_access_key',
-			'wcssot_tracking_page_base_url',
-		], $this ) );
+		$this->set_options_manager(
+			apply_filters( 'wcssot_set_default_options_manager', new WCSSOT_Options_Manager( $this ), $this )
+		);
 		/**
 		 * Filters the default order meta keys used for the WC_Order object.
 		 *
@@ -137,7 +164,6 @@ final class WCSSOT {
 			'wcssot_shipping_carrier'       => 'wcssot_shipping_carrier',
 			'wcssot_shipping_tracking_code' => 'wcssot_shipping_tracking_code',
 		], $this ) );
-		$this->set_options( get_option( 'wcssot_settings', [] ) );
 		try {
 			/**
 			 * Filters the default timezone object.
@@ -164,8 +190,8 @@ final class WCSSOT {
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		$this->set_api( apply_filters( 'wcssot_set_default_api', new WCSSOT_API_Manager(
-			$this->get_option( 'wcssot_api_base_url' ),
-			$this->get_option( 'wcssot_api_access_key' )
+			$this->get_options_manager()->get_option( 'wcssot_api_base_url' ),
+			$this->get_options_manager()->get_option( 'wcssot_api_access_key' )
 		), $this ) );
 		/**
 		 * Fires after initialising the class properties.
@@ -178,75 +204,43 @@ final class WCSSOT {
 	}
 
 	/**
-	 * Returns the specified option key from the options property.
+	 * Returns the instance of the options manager class.
 	 *
-	 * @since 0.2.0
+	 * @since 1.2.0
 	 *
-	 * @param string $option The option key to get.
-	 * @param mixed $default The default value to return in case the option does not exist.
-	 *
-	 * @return mixed The option value requested.
+	 * @return WCSSOT_Options_Manager $instance The instance of the options manager class.
 	 */
-	public function get_option( $option, $default = null ) {
-		$options = $this->get_options();
-
+	public function get_options_manager() {
 		/**
-		 * Filters the option requested.
+		 * Filters the options manager instance to return.
 		 *
-		 * @since 0.6.0
+		 * @since 1.2.0
 		 *
-		 * @param mixed $value The option requested.
-		 * @param string $option The option key requested.
-		 * @param mixed $default The default value to return in case the option does not exist.
+		 * @param WCSSOT_Options_Manager $instance The options manager instance.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
-		return apply_filters(
-			'wcssot_get_option',
-			( isset( $options[ $option ] ) ? $options[ $option ] : $default ),
-			$option,
-			$default,
-			$this
-		);
+		return apply_filters( 'wcssot_get_options_manager', $this->options_manager, $this );
 	}
 
 	/**
-	 * Returns the options property.
+	 * Sets the instance of the options manager class.
 	 *
-	 * @since 0.2.0
+	 * @since 1.2.0
 	 *
-	 * @return array The list of the plugin options.
-	 */
-	public function get_options() {
-		/**
-		 * Filters the plugin options list.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param array $options The list of the plugin options.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		return apply_filters( 'wcssot_get_options', $this->options, $this );
-	}
-
-	/**
-	 * Sets the options property.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @param array $options The options list to set.
+	 * @param WCSSOT_Options_Manager $instance The instance of the options manager class.
 	 *
 	 * @return void
 	 */
-	public function set_options( $options ) {
+	public function set_options_manager( $instance ) {
 		/**
-		 * Filters the options to be set.
+		 * Filters the instance of the options manager class.
 		 *
-		 * @since 0.6.0
+		 * @since 1.2.0
 		 *
-		 * @param array $options The options to be set.
+		 * @param WCSSOT_Options_Manager $instance The instance of the options manager class.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
-		$this->options = apply_filters( 'wcssot_set_options', $options, $this );
+		$this->options_manager = apply_filters( 'wcssot_set_options_manager', $instance, $this );
 	}
 
 	/**
@@ -266,25 +260,10 @@ final class WCSSOT {
 		 */
 		do_action( 'wcssot_before_initialise_hooks', $this );
 		WCSSOT_Logger::debug( 'Initialising hooks for the WCSSOT main class.' );
-		add_action( 'plugins_loaded', [ $this, 'load_textdomain' ] );
-		/**
-		 * Filters whether to add the administration hooks.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param bool $decision Whether to add the administration hooks.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		if ( is_admin() && apply_filters( 'wcssot_add_admin_action_hooks', true, $this ) ) {
-			WCSSOT_Logger::debug( 'Initialising hooks for the administration panel.' );
-			add_action( 'admin_menu', [ $this, 'add_admin_menu' ] );
-			add_action( 'admin_init', [ $this, 'register_admin_settings' ] );
-			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_scripts' ] );
-		}
 		/**
 		 * Checks if all required settings are populated.
 		 */
-		if ( ! $this->settings_exist() ) {
+		if ( ! $this->get_options_manager()->settings_exist() ) {
 			return;
 		}
 		add_action( 'woocommerce_order_status_processing', [ $this, 'export_order' ], 10, 2 );
@@ -301,32 +280,31 @@ final class WCSSOT {
 	}
 
 	/**
-	 * Returns whether the required settings have been set.
+	 * Returns the options property.
 	 *
-	 * @since 0.1.0
+	 * @since 0.2.0
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->get_options().
+	 * @see WCSSOT_Options_Manager->get_options()
 	 *
-	 * @return bool Whether the required settings are populated.
+	 * @return array The list of the plugin options.
 	 */
-	private function settings_exist() {
-		WCSSOT_Logger::debug( 'Checking if all required settings exist.' );
-		$exist = true;
-		foreach ( $this->options_required as $option_required ) {
-			if ( empty( $this->options[ $option_required ] ) ) {
-				WCSSOT_Logger::error( "The setting '$option_required' is missing from the options!" );
-				$exist = false;
-				break;
-			}
-		}
+	public function get_options() {
+		return $this->get_options_manager()->get_options();
+	}
 
-		/**
-		 * Filters the decision whether the settings exist.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param bool $exist Whether the required settings exist.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		return apply_filters( 'wcssot_settings_exist', $exist, $this );
+	/**
+	 * Sets the options property.
+	 *
+	 * @since 0.2.0
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->set_options().
+	 * @see WCSSOT_Options_Manager->set_options()
+	 *
+	 * @param array $options The options list to set.
+	 *
+	 * @return void
+	 */
+	public function set_options( $options ) {
+		$this->get_options_manager()->set_options( $options );
 	}
 
 	/**
@@ -386,6 +364,28 @@ final class WCSSOT {
 			$tracking_code
 		);
 		$text    .= '</p>';
+
+		/**
+		 * Filters the tracking information text.
+		 *
+		 * @since 1.2.0
+		 *
+		 * @param string $text The already constructed text.
+		 * @param string $tracking_link The link to the tracking page with the order's information.
+		 * @param string $carrier The carrier name for the shipment.
+		 * @param string $tracking_code The tracking code for the shipment.
+		 * @param WC_Order $order The order of the shipment.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		$text = apply_filters(
+			'wcssot_get_tracking_information_text',
+			$text,
+			$tracking_link,
+			$carrier,
+			$tracking_code,
+			$order,
+			$this
+		);
 
 		/**
 		 * Filters the contents of the tracking information to render on the customer email.
@@ -601,579 +601,134 @@ final class WCSSOT {
 	 * Adds the administration menu page.
 	 *
 	 * @since 0.0.1
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->add_admin_menu().
+	 * @see WCSSOT_Options_Manager->add_admin_menu()
 	 *
 	 * @return void
 	 */
 	public function add_admin_menu() {
-		do_action( 'wcssot_before_add_admin_menu', $this );
-		WCSSOT_Logger::debug( 'Adding the main administration menu item for the plugin.' );
-		add_menu_page(
-			__( 'Seven Senders Order Tracking', 'woocommerce-seven-senders-order-tracking' ),
-			__( 'Order Tracking', 'woocommerce-seven-senders-order-tracking' ),
-			'manage_options',
-			'wcssot',
-			[ $this, 'render_admin_page' ],
-			plugin_dir_url( WCSSOT_PLUGIN_FILE ) . 'admin/images/icon_wcssot.png',
-			100
-		);
-		do_action( 'wcssot_after_add_admin_menu', $this );
+		$this->get_options_manager()->add_admin_menu();
 	}
 
 	/**
 	 * Renders the admin settings page.
 	 *
 	 * @since 0.0.1
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->render_admin_page().
+	 * @see WCSSOT_Options_Manager->render_admin_page()
 	 *
 	 * @return void
 	 */
 	public function render_admin_page() {
-		/**
-		 * Fires before rendering the administration page.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_before_render_admin_page', $this );
-		WCSSOT_Logger::debug( 'Rendering the administration panel settings page.' );
-		if ( ! current_user_can( 'manage_options' ) ) {
-			WCSSOT_Logger::debug( "User #" . get_current_user_id() . " (current) cannot view administration page." );
-
-			return;
-		}
-		$description = __(
-			'Interacts with the <a href="%s" target="_blank">Seven Senders API</a> to provide order tracking'
-			. ' functionality to your WooCommerce shop.',
-			'woocommerce-seven-senders-order-tracking'
-		);
-		$description = wp_kses( $description, [
-			'a' => [
-				'href'   => [],
-				'target' => [],
-			]
-		] );
-		?>
-        <div class="wrap">
-            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-            <p><?php printf( $description, 'https://api.sevensenders.com/v2/docs.html' ); ?></p>
-			<?php settings_errors( 'wcssot' ); ?>
-            <form action="options.php" method="post" id="wcssot_form">
-				<?php
-				settings_fields( 'wcssot' );
-				do_settings_sections( 'wcssot_settings' );
-				submit_button( __( 'Save Settings', 'woocommerce-seven-senders-order-tracking' ) );
-				?>
-            </form>
-        </div>
-		<?php
-		/**
-		 * Fires after rendering the administration page.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_after_render_admin_page', $this );
-	}
-
-	/**
-	 * Loads the textdomain for the plugin.
-	 *
-	 * @since 0.0.1
-	 *
-	 * @return void
-	 */
-	public function load_textdomain() {
-		/**
-		 * Fires before loading the text domain.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_before_load_textdomain', $this );
-		WCSSOT_Logger::debug( "Loading the 'woocommerce-seven-senders-order-tracking' text domain." );
-		load_plugin_textdomain(
-			'woocommerce-seven-senders-order-tracking',
-			false,
-			plugin_dir_url( WCSSOT_PLUGIN_FILE ) . 'languages/'
-		);
-		/**
-		 * Fires after loading the text domain.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_after_load_textdomain', $this );
+		$this->get_options_manager()->render_admin_page();
 	}
 
 	/**
 	 * Registers the administration settings.
 	 *
 	 * @since 0.0.1
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->register_admin_settings().
+	 * @see WCSSOT_Options_Manager->register_admin_settings()
 	 *
 	 * @return void
 	 */
 	public function register_admin_settings() {
-		/**
-		 * Fires before registering the administration settings.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_before_register_admin_settings', $this );
-		WCSSOT_Logger::debug( "Registering the administration settings and adding all sections and fields." );
-		register_setting(
-			'wcssot',
-			'wcssot_settings',
-			[
-				'sanitize_callback' => [ $this, 'sanitize_admin_settings' ]
-			]
-		);
-
-		/**
-		 * Add the 'API Credentials' section
-		 */
-		add_settings_section(
-			'wcssot_settings_api_credentials_section',
-			__( 'API Credentials', 'woocommerce-seven-senders-order-tracking' ),
-			[ $this, 'render_admin_api_credentials_section' ],
-			'wcssot_settings'
-		);
-		add_settings_field(
-			'wcssot_api_base_url',
-			__( 'API Base URL', 'woocommerce-seven-senders-order-tracking' ),
-			[ $this, 'render_admin_api_base_url_field' ],
-			'wcssot_settings',
-			'wcssot_settings_api_credentials_section',
-			[
-				'label_for' => 'wcssot_api_base_url',
-			]
-		);
-		add_settings_field(
-			'wcssot_api_access_key',
-			__( 'API Access Key', 'woocommerce-seven-senders-order-tracking' ),
-			[ $this, 'render_admin_api_access_key_field' ],
-			'wcssot_settings',
-			'wcssot_settings_api_credentials_section',
-			[
-				'label_for' => 'wcssot_api_access_key',
-			]
-		);
-
-		/**
-		 * Add the 'Tracking Page' section
-		 */
-		add_settings_section(
-			'wcssot_settings_tracking_page_section',
-			__( 'Tracking Page', 'woocommerce-seven-senders-order-tracking' ),
-			[ $this, 'render_admin_tracking_page_section' ],
-			'wcssot_settings'
-		);
-		add_settings_field(
-			'wcssot_tracking_page_base_url',
-			__( 'Tracking Page Base URL', 'woocommerce-seven-senders-order-tracking' ),
-			[ $this, 'render_admin_tracking_page_base_url_field' ],
-			'wcssot_settings',
-			'wcssot_settings_tracking_page_section',
-			[
-				'label_for' => 'wcssot_tracking_page_base_url',
-			]
-		);
-		/**
-		 * Fires after registering the administration settings.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_after_register_admin_settings', $this );
+		$this->get_options_manager()->register_admin_settings();
 	}
 
 	/**
 	 * Renders the API Credentials section.
 	 *
 	 * @since 0.0.1
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->render_admin_api_credentials_section().
+	 * @see WCSSOT_Options_Manager->render_admin_api_credentials_section()
 	 *
 	 * @return void
 	 */
 	public function render_admin_api_credentials_section() {
-		/**
-		 * Fires before rendering the API Credentials section.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_before_render_admin_api_credentials_section', $this );
-		WCSSOT_Logger::debug( "Rendering the 'API Credentials' section subtitle." );
-		$text = __(
-			'Enter your assigned API credentials <a href="%s" target="_blank">from the Seven Senders dashboard</a>.',
-			'woocommerce-seven-senders-order-tracking'
-		);
-		$text = wp_kses( $text, [
-			'a' => [
-				'href'   => [],
-				'target' => [],
-			]
-		] );
-		?>
-        <p><?php printf( $text, 'https://sendwise.sevensenders.com/settings/shop/integrations' ); ?></p>
-		<?php
-		/**
-		 * Fires after rendering the API Credentials section.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_after_render_admin_api_credentials_section', $this );
+		$this->get_options_manager()->render_admin_api_credentials_section();
 	}
 
 	/**
 	 * Renders the Tracking Page section.
 	 *
 	 * @since 0.0.1
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->render_admin_tracking_page_section().
+	 * @see WCSSOT_Options_Manager->render_admin_tracking_page_section()
 	 *
 	 * @return void
 	 */
 	public function render_admin_tracking_page_section() {
-		/**
-		 * Fires before rendering the Tracking Page section.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_before_render_admin_tracking_page_section', $this );
-		WCSSOT_Logger::debug( "Rendering the 'Tracking Page' section subtitle." );
-		?>
-        <p><?php esc_html_e(
-				'Enter the Seven Senders Tracking Page settings.',
-				'woocommerce-seven-senders-order-tracking'
-			); ?></p>
-		<?php
-		/**
-		 * Fires after rendering the Tracking Page section.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_after_render_admin_tracking_page_section', $this );
+		$this->get_options_manager()->render_admin_tracking_page_section();
 	}
 
 	/**
 	 * Renders the API Base URL setting field.
 	 *
 	 * @since 0.0.1
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->render_admin_api_base_url_field().
+	 * @see WCSSOT_Options_Manager->render_admin_api_base_url_field()
 	 *
 	 * @return void
 	 */
 	public function render_admin_api_base_url_field() {
-		/**
-		 * Fires before rendering the API Base URL field.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_before_render_admin_api_base_url_field', $this );
-		WCSSOT_Logger::debug( "Rendering the 'API Base URL' field." );
-		$placeholder = esc_attr__(
-			'The Seven Senders API base URL...',
-			'woocommerce-seven-senders-order-tracking'
-		);
-		?>
-        <input type="text"
-               name="wcssot_api_base_url"
-               id="wcssot_api_base_url"
-               class="wcssot_form_field wcssot_form_text_field"
-               placeholder="<?php echo $placeholder; ?>"
-               required="required"
-               value="<?php
-		       echo isset( $this->options['wcssot_api_base_url'] ) ? $this->options['wcssot_api_base_url'] : '';
-		       ?>"
-        >
-        <span class="wcssot_helper_text">/&lt;<?php esc_html_e(
-				'API Endpoint',
-				'woocommerce-seven-senders-order-tracking'
-			); ?>&gt;</span>
-		<?php
-		/**
-		 * Fires after rendering the API Base URL field.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_after_render_admin_api_base_url_field', $this );
+		$this->get_options_manager()->render_admin_api_base_url_field();
 	}
 
 	/**
 	 * Renders the API Access Key setting field.
 	 *
 	 * @since 0.0.1
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->render_admin_api_access_key_field().
+	 * @see WCSSOT_Options_Manager->render_admin_api_access_key_field()
 	 *
 	 * @return void
 	 */
 	public function render_admin_api_access_key_field() {
-		/**
-		 * Fires before rendering the API Access Key field.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_before_render_admin_api_access_key_field', $this );
-		WCSSOT_Logger::debug( "Rendering the 'API Access Key' field." );
-		$placeholder = esc_attr__(
-			'Your provided access key...',
-			'woocommerce-seven-senders-order-tracking'
-		);
-		?>
-        <input type="text"
-               name="wcssot_api_access_key"
-               id="wcssot_api_access_key"
-               class="wcssot_form_field wcssot_form_text_field"
-               placeholder="<?php echo $placeholder; ?>"
-               required="required"
-               value="<?php
-		       echo isset( $this->options['wcssot_api_access_key'] ) ? $this->options['wcssot_api_access_key'] : '';
-		       ?>"
-        >
-		<?php
-		/**
-		 * Fires after rendering the API Access Key field.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_after_render_admin_api_access_key_field', $this );
+		$this->get_options_manager()->render_admin_api_access_key_field();
 	}
 
 	/**
 	 * Renders the Tracking Page Base URL setting field.
 	 *
 	 * @since 0.0.1
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->render_admin_tracking_page_base_url_field().
+	 * @see WCSSOT_Options_Manager->render_admin_tracking_page_base_url_field()
 	 *
 	 * @return void
 	 */
 	public function render_admin_tracking_page_base_url_field() {
-		/**
-		 * Fires before rendering the Tracking Page Base URL field.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_before_render_admin_tracking_page_base_url_field', $this );
-		WCSSOT_Logger::debug( "Rendering the 'Tracking Page Base URL' field." );
-		$placeholder = esc_attr__(
-			'The tracking page base URL...',
-			'woocommerce-seven-senders-order-tracking'
-		);
-		?>
-        <input type="text"
-               name="wcssot_tracking_page_base_url"
-               id="wcssot_tracking_page_base_url"
-               class="wcssot_form_field wcssot_form_text_field"
-               placeholder="<?php echo $placeholder; ?>"
-               required="required"
-               value="<?php
-		       echo isset( $this->options['wcssot_tracking_page_base_url'] )
-			       ? $this->options['wcssot_tracking_page_base_url']
-			       : '';
-		       ?>"
-        >
-        <span class="wcssot_helper_text">/&lt;<?php
-			esc_html_e( 'Order Number', 'woocommerce-seven-senders-order-tracking' );
-			?>&gt;</span>
-		<?php
-		/**
-		 * Fires after rendering the Trackign Page Base URL field.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_after_render_admin_tracking_page_base_url_field', $this );
+		$this->get_options_manager()->render_admin_tracking_page_base_url_field();
 	}
 
 	/**
 	 * Enqueues all necessary assets for the administration panel plugin page.
 	 *
 	 * @since 0.0.1
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->enqueue_admin_scripts().
+	 * @see WCSSOT_Options_Manager->enqueue_admin_scripts()
 	 *
 	 * @param string $hook The hook that calls the enqueueing process.
 	 *
 	 * @return void
 	 */
 	public function enqueue_admin_scripts( $hook = '' ) {
-		if ( $hook !== 'toplevel_page_wcssot' ) {
-			return;
-		}
-		WCSSOT_Logger::debug( "Enqueueing all necessary scripts and styles for the administration panel page." );
-		/**
-		 * Fires before enqueueing the administration scripts.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_before_enqueue_admin_scripts', $this );
-		wp_enqueue_style(
-			'wcssot_admin_css',
-			plugins_url( 'admin/css/styles.css', WCSSOT_PLUGIN_FILE )
-		);
-		wp_enqueue_script(
-			'wcssot_admin_js',
-			plugins_url( 'admin/js/scripts.js', WCSSOT_PLUGIN_FILE )
-		);
-		wp_localize_script(
-			'wcssot_admin_js',
-			'wcssot',
-			[
-				'l10n' => [
-					'loading_text' => esc_attr__(
-						'Loading... Please wait.',
-						'woocommerce-seven-senders-order-tracking'
-					),
-				],
-			]
-		);
-		/**
-		 * Fires after enqueueing the administration scripts.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		do_action( 'wcssot_after_enqueue_admin_scripts', $this );
+		$this->get_options_manager()->enqueue_admin_scripts( $hook );
 	}
 
 	/**
 	 * Sanitize the administration settings page.
 	 *
 	 * @since 0.0.1
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->sanitize_admin_settings().
+	 * @see WCSSOT_Options_Manager->sanitize_admin_settings()
 	 *
 	 * @param array $input The input list to sanitise.
 	 *
 	 * @return array The sanitised input list.
 	 */
 	public function sanitize_admin_settings( $input = [] ) {
-		WCSSOT_Logger::debug( "Sanitising the settings input." );
-		if (
-			empty( $_POST['wcssot_api_base_url'] ) ||
-			empty( $_POST['wcssot_api_access_key'] ) ||
-			empty( $_POST['wcssot_tracking_page_base_url'] )
-		) {
-			add_settings_error( 'wcssot', 'wcssot_error', esc_html__(
-				'One of the form fields is missing!',
-				'woocommerce-seven-senders-order-tracking'
-			) );
-			WCSSOT_Logger::error( "One of the fields is missing." );
-
-			return $input;
-		}
-
-		$api_base_url           = rtrim( trim( $_POST['wcssot_api_base_url'] ), '/' );
-		$api_access_key         = trim( $_POST['wcssot_api_access_key'] );
-		$tracking_page_base_url = rtrim( trim( $_POST['wcssot_tracking_page_base_url'] ), '/' );
-
-		/**
-		 * Filters whether the API Base URL input is valid.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param bool $valid Whether the field is valid.
-		 * @param string $api_base_url The API Base URL value.
-		 * @param array $input The input list to sanitise.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		if ( ! apply_filters(
-			'wcssot_is_api_base_url_valid',
-			wc_is_valid_url( $api_base_url ),
-			$api_base_url,
-			$input,
-			$this
-		) ) {
-			add_settings_error( 'wcssot', 'wcssot_error', sprintf( esc_html__(
-				'The field "%s" contains an invalid URL.',
-				'woocommerce-seven-senders-order-tracking'
-			), 'API Base URL' ) );
-			WCSSOT_Logger::error( "The 'API Base URL' field is invalid." );
-
-			return $input;
-		}
-
-		/**
-		 * Filters whether the API Access Key field is valid.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param bool $valid Whether the field is valid.
-		 * @param string $api_access_key The API Access Key value.
-		 * @param array $input The input list to be sanitise.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		if ( ! apply_filters( 'wcssot_is_api_access_key_valid', true, $api_access_key, $input, $this ) ) {
-			add_settings_error( 'wcssot', 'wcssot_error', sprintf( esc_html__(
-				'The field "%s" is invalid.',
-				'woocommerce-seven-senders-order-tracking'
-			), 'API Access Key' ) );
-			WCSSOT_Logger::error( "The 'API Access Key' field is invalid." );
-
-			return $input;
-		}
-
-		/**
-		 * Filters whether the Tracking Page Base URL field is valid.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param bool $valid Whether the field is valid.
-		 * @param string $tracking_page_base_url The Tracking Page Base URL value.
-		 * @param array $input The input list to sanitise.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		if ( ! apply_filters(
-			'wcssot_is_tracking_page_base_url_valid',
-			wc_is_valid_url( $tracking_page_base_url ),
-			$tracking_page_base_url,
-			$input,
-			$this
-		) ) {
-			add_settings_error( 'wcssot', 'wcssot_error', sprintf( esc_html__(
-				'The field "%s" contains an invalid URL.',
-				'woocommerce-seven-senders-order-tracking'
-			), 'Tracking Page Base URL' ) );
-			WCSSOT_Logger::error( "The 'Tracking Page Base URL' field is invalid." );
-
-			return $input;
-		}
-
-		$input['wcssot_api_base_url']           = $api_base_url;
-		$input['wcssot_api_access_key']         = $api_access_key;
-		$input['wcssot_tracking_page_base_url'] = $tracking_page_base_url;
-
-		add_settings_error( 'wcssot', 'wcssot_success', esc_html__(
-			'The settings have been saved successfully!',
-			'woocommerce-seven-senders-order-tracking'
-		), 'updated' );
-
-		/**
-		 * Filters the sanitised input list.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param array $input The sanitised input list.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		return apply_filters( 'wcssot_sanitize_admin_settings', $input, $this );
+		return $this->get_options_manager()->sanitize_admin_settings( $input );
 	}
 
 	/**
@@ -1343,22 +898,22 @@ final class WCSSOT {
 		}
 		/**
 		 * Fires after exporting the order.
-         *
-         * @since 0.6.0
-         *
-         * @param WC_Order $order The order object that got exported.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param WC_Order $order The order object that got exported.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		do_action( 'wcssot_after_export_order', $order, $this );
 
 		/**
 		 * Filters whether the order has been exported.
-         *
-         * @since 0.6.0
-         *
-         * @param bool $decision Whether the order has been exported.
-         * @param WC_Order $order The order object that was exported.
-         * @param array $order_data The order data that was exported.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param bool $decision Whether the order has been exported.
+		 * @param WC_Order $order The order object that was exported.
+		 * @param array $order_data The order data that was exported.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		return apply_filters( 'wcssot_order_exported', true, $order, $order_data, $this );
@@ -1374,10 +929,10 @@ final class WCSSOT {
 	public function get_timezone() {
 		/**
 		 * Filters the timezone object requested.
-         *
-         * @since 0.6.0
-         *
-         * @param DateTimeZone $timezone The timezone object that was requested.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param DateTimeZone $timezone The timezone object that was requested.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		return apply_filters( 'wcssot_get_timezone', $this->timezone, $this );
@@ -1395,10 +950,10 @@ final class WCSSOT {
 	public function set_timezone( $timezone ) {
 		/**
 		 * Filters the timezone object to be set.
-         *
-         * @since 0.6.0
-         *
-         * @param DateTimeZone $timezone The timezone object to set.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param DateTimeZone $timezone The timezone object to set.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		$this->timezone = apply_filters( 'wcssot_set_timezone', $timezone, $this );
@@ -1415,18 +970,18 @@ final class WCSSOT {
 	 */
 	private function get_tracking_link( $order_number ) {
 		$link     = '';
-		$base_url = $this->get_option( 'wcssot_tracking_page_base_url', '' );
+		$base_url = $this->get_options_manager()->get_option( 'wcssot_tracking_page_base_url', '' );
 		if ( ! empty( $base_url ) && ! empty( $order_number ) ) {
 			$link = $base_url . '/' . $order_number;
 		}
 
 		/**
 		 * Filters the tracking link requested.
-         *
-         * @since 0.6.0
-         *
-         * @param string $link The tracking link.
-         * @param string $order_number The order number for the tracking link.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param string $link The tracking link.
+		 * @param string $order_number The order number for the tracking link.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		return apply_filters( 'wcssot_get_tracking_link', $link, $order_number, $this );
@@ -1465,11 +1020,11 @@ final class WCSSOT {
 
 		/**
 		 * Filters whether the order is valid for shipment export.
-         *
-         * @since 0.6.0
-         *
-         * @param bool $valid Whether the order is valid.
-         * @param WC_Order $order The order object to check.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param bool $valid Whether the order is valid.
+		 * @param WC_Order $order The order object to check.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		return apply_filters( 'wcssot_is_order_valid_for_shipment', true, $order, $this );
@@ -1499,12 +1054,12 @@ final class WCSSOT {
 
 		/**
 		 * Filters whether the carrier is valid.
-         *
-         * @since 0.6.0
-         *
-         * @param bool $valid Whether the carrier provided is valid.
-         * @param string $carrier The carrier identifier to check.
-         * @param WC_Order $order The order object for the carrier.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param bool $valid Whether the carrier provided is valid.
+		 * @param string $carrier The carrier identifier to check.
+		 * @param WC_Order $order The order object for the carrier.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		return apply_filters( 'wcssot_is_carrier_valid', true, $carrier, $order, $this );
@@ -1531,12 +1086,12 @@ final class WCSSOT {
 
 		/**
 		 * Filters the planned pickup datetime.
-         *
-         * @since 0.6.0
-         *
-         * @param string $datetime The datetime string of the pickup time.
-         * @param WC_Order $order The order object to get the time for.
-         * @param string $carrier The carrier identifier to get the pickup time for.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param string $datetime The datetime string of the pickup time.
+		 * @param WC_Order $order The order object to get the time for.
+		 * @param string $carrier The carrier identifier to get the pickup time for.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		return apply_filters(
@@ -1565,54 +1120,58 @@ final class WCSSOT {
 
 		/**
 		 * Filters the recipient address.
-         *
-         * @since 0.6.0
-         *
-         * @param string $address The recipient address requested.
-         * @param WC_Order $order The order object to get the address from.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param string $address The recipient address requested.
+		 * @param WC_Order $order The order object to get the address from.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		return apply_filters( 'wcssot_get_recipient_address', $address, $order, $this );
 	}
 
 	/**
+	 * Returns the specified option key from the options property.
+	 *
+	 * @since 0.2.0
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->get_option().
+	 * @see WCSSOT_Options_Manager->get_option()
+	 *
+	 * @param string $option The option key to get.
+	 * @param mixed $default The default value to return in case the option does not exist.
+	 *
+	 * @return mixed The option value requested.
+	 */
+	public function get_option( $option, $default = null ) {
+		return $this->get_options_manager()->get_option( $option, $default );
+	}
+
+	/**
 	 * Returns the options required property.
 	 *
 	 * @since 0.2.0
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->get_options_required().
+	 * @see WCSSOT_Options_Manager->get_options_required()
 	 *
 	 * @return array The list of options required.
 	 */
 	public function get_options_required() {
-		/**
-		 * Filters the list of options required by the plugin.
-         *
-         * @since 0.6.0
-         *
-         * @param array $options The list of options required.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		return apply_filters( 'wcssot_get_options_required', $this->options_required, $this );
+		return $this->get_options_manager()->get_options_required();
 	}
 
 	/**
 	 * Sets the options required property.
 	 *
 	 * @since 0.2.0
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->set_options_required().
+	 * @see WCSSOT_Options_Manager->set_options_required()
 	 *
 	 * @param array $options_required The list of options required to set.
 	 *
 	 * @return void
 	 */
 	public function set_options_required( $options_required ) {
-		/**
-		 * Filters the list of options required to set.
-         *
-         * @since 0.6.0
-         *
-         * @param array $options The list of options required to set.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		$this->options_required = apply_filters( 'wcssot_set_options_required', $options_required, $this );
+		$this->get_options_manager()->set_options_required( $options_required );
 	}
 
 	/**
@@ -1625,10 +1184,10 @@ final class WCSSOT {
 	public function get_order_meta_keys() {
 		/**
 		 * Filters the list of order meta keys used by the plugin.
-         *
-         * @since 0.6.0
-         *
-         * @param array $keys The list of order meta keys.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $keys The list of order meta keys.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		return apply_filters( 'wcssot_get_order_meta_keys', $this->order_meta_keys, $this );
@@ -1646,10 +1205,10 @@ final class WCSSOT {
 	public function set_order_meta_keys( $order_meta_keys ) {
 		/**
 		 * Filters the list of order meta keys to set.
-         *
-         * @since 0.6.0
-         *
-         * @param array $keys The list of order meta keys to set.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param array $keys The list of order meta keys to set.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		$this->order_meta_keys = apply_filters( 'wcssot_set_order_meta_keys', $order_meta_keys, $this );
