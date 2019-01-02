@@ -43,6 +43,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class WCSSOT {
 	/**
 	 * @var array $options The list of options set/used by the plugin.
+	 * @deprecated 1.2.0 Use the options manager class (WCSSOT_Options_Manager).
+	 * @see WCSSOT_Options_Manager
 	 */
 	private $options = [];
 
@@ -175,7 +177,6 @@ final class WCSSOT {
 			'wcssot_shipping_carrier'       => 'wcssot_shipping_carrier',
 			'wcssot_shipping_tracking_code' => 'wcssot_shipping_tracking_code',
 		], $this ) );
-		$this->set_options( get_option( 'wcssot_settings', [] ) );
 		try {
 			/**
 			 * Filters the default timezone object.
@@ -202,8 +203,8 @@ final class WCSSOT {
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		$this->set_api( apply_filters( 'wcssot_set_default_api', new WCSSOT_API_Manager(
-			$this->get_option( 'wcssot_api_base_url' ),
-			$this->get_option( 'wcssot_api_access_key' )
+			$this->get_options_manager()->get_option( 'wcssot_api_base_url' ),
+			$this->get_options_manager()->get_option( 'wcssot_api_access_key' )
 		), $this ) );
 		/**
 		 * Fires after initialising the class properties.
@@ -216,75 +217,43 @@ final class WCSSOT {
 	}
 
 	/**
-	 * Returns the specified option key from the options property.
+	 * Returns the instance of the options manager class.
 	 *
-	 * @since 0.2.0
+	 * @since 1.2.0
 	 *
-	 * @param string $option The option key to get.
-	 * @param mixed $default The default value to return in case the option does not exist.
-	 *
-	 * @return mixed The option value requested.
+	 * @return WCSSOT_Options_Manager $instance The instance of the options manager class.
 	 */
-	public function get_option( $option, $default = null ) {
-		$options = $this->get_options();
-
+	public function get_options_manager() {
 		/**
-		 * Filters the option requested.
+		 * Filters the options manager instance to return.
 		 *
-		 * @since 0.6.0
+		 * @since 1.2.0
 		 *
-		 * @param mixed $value The option requested.
-		 * @param string $option The option key requested.
-		 * @param mixed $default The default value to return in case the option does not exist.
+		 * @param WCSSOT_Options_Manager $instance The options manager instance.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
-		return apply_filters(
-			'wcssot_get_option',
-			( isset( $options[ $option ] ) ? $options[ $option ] : $default ),
-			$option,
-			$default,
-			$this
-		);
+		return apply_filters( 'wcssot_get_options_manager', $this->options_manager, $this );
 	}
 
 	/**
-	 * Returns the options property.
+	 * Sets the instance of the options manager class.
 	 *
-	 * @since 0.2.0
+	 * @since 1.2.0
 	 *
-	 * @return array The list of the plugin options.
-	 */
-	public function get_options() {
-		/**
-		 * Filters the plugin options list.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param array $options The list of the plugin options.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		return apply_filters( 'wcssot_get_options', $this->options, $this );
-	}
-
-	/**
-	 * Sets the options property.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @param array $options The options list to set.
+	 * @param WCSSOT_Options_Manager $instance The instance of the options manager class.
 	 *
 	 * @return void
 	 */
-	public function set_options( $options ) {
+	public function set_options_manager( $instance ) {
 		/**
-		 * Filters the options to be set.
+		 * Filters the instance of the options manager class.
 		 *
-		 * @since 0.6.0
+		 * @since 1.2.0
 		 *
-		 * @param array $options The options to be set.
+		 * @param WCSSOT_Options_Manager $instance The instance of the options manager class.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
-		$this->options = apply_filters( 'wcssot_set_options', $options, $this );
+		$this->options_manager = apply_filters( 'wcssot_set_options_manager', $instance, $this );
 	}
 
 	/**
@@ -346,9 +315,11 @@ final class WCSSOT {
 	 */
 	private function settings_exist() {
 		WCSSOT_Logger::debug( 'Checking if all required settings exist.' );
-		$exist = true;
-		foreach ( $this->get_options_manager()->get_options_required() as $option_required ) {
-			if ( empty( $this->options[ $option_required ] ) ) {
+		$exist            = true;
+		$options_required = $this->get_options_manager()->get_options_required();
+		$options          = $this->get_options_manager()->get_options();
+		foreach ( $options_required as $option_required ) {
+			if ( empty( $options[ $option_required ] ) ) {
 				WCSSOT_Logger::error( "The setting '$option_required' is missing from the options!" );
 				$exist = false;
 				break;
@@ -367,43 +338,31 @@ final class WCSSOT {
 	}
 
 	/**
-	 * Returns the instance of the options manager class.
+	 * Returns the options property.
 	 *
-	 * @since 1.2.0
+	 * @since 0.2.0
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->get_options().
+	 * @see WCSSOT_Options_Manager->get_options()
 	 *
-	 * @return WCSSOT_Options_Manager $instance The instance of the options manager class.
+	 * @return array The list of the plugin options.
 	 */
-	public function get_options_manager() {
-		/**
-		 * Filters the options manager instance to return.
-		 *
-		 * @since 1.2.0
-		 *
-		 * @param WCSSOT_Options_Manager $instance The options manager instance.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		return apply_filters( 'wcssot_get_options_manager', $this->options_manager, $this );
+	public function get_options() {
+		return $this->get_options_manager()->get_options();
 	}
 
 	/**
-	 * Sets the instance of the options manager class.
+	 * Sets the options property.
 	 *
-	 * @since 1.2.0
+	 * @since 0.2.0
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->set_options().
+	 * @see WCSSOT_Options_Manager->set_options()
 	 *
-	 * @param WCSSOT_Options_Manager $instance The instance of the options manager class.
+	 * @param array $options The options list to set.
 	 *
 	 * @return void
 	 */
-	public function set_options_manager( $instance ) {
-		/**
-		 * Filters the instance of the options manager class.
-		 *
-		 * @since 1.2.0
-		 *
-		 * @param WCSSOT_Options_Manager $instance The instance of the options manager class.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		$this->options_manager = apply_filters( 'wcssot_set_options_manager', $instance, $this );
+	public function set_options( $options ) {
+		$this->get_options_manager()->set_options( $options );
 	}
 
 	/**
@@ -961,7 +920,7 @@ final class WCSSOT {
                placeholder="<?php echo $placeholder; ?>"
                required="required"
                value="<?php
-		       echo isset( $this->options['wcssot_api_base_url'] ) ? $this->options['wcssot_api_base_url'] : '';
+		       echo $this->get_options_manager()->get_option( 'wcssot_api_base_url', '' );
 		       ?>"
         >
         <span class="wcssot_helper_text">/&lt;<?php esc_html_e(
@@ -1008,7 +967,7 @@ final class WCSSOT {
                placeholder="<?php echo $placeholder; ?>"
                required="required"
                value="<?php
-		       echo isset( $this->options['wcssot_api_access_key'] ) ? $this->options['wcssot_api_access_key'] : '';
+		       echo $this->get_options_manager()->get_option( 'wcssot_api_access_key', '' );
 		       ?>"
         >
 		<?php
@@ -1051,9 +1010,7 @@ final class WCSSOT {
                placeholder="<?php echo $placeholder; ?>"
                required="required"
                value="<?php
-		       echo isset( $this->options['wcssot_tracking_page_base_url'] )
-			       ? $this->options['wcssot_tracking_page_base_url']
-			       : '';
+		       echo $this->get_options_manager()->get_option( 'wcssot_tracking_page_base_url', '' );
 		       ?>"
         >
         <span class="wcssot_helper_text">/&lt;<?php
@@ -1482,7 +1439,7 @@ final class WCSSOT {
 	 */
 	private function get_tracking_link( $order_number ) {
 		$link     = '';
-		$base_url = $this->get_option( 'wcssot_tracking_page_base_url', '' );
+		$base_url = $this->get_options_manager()->get_option( 'wcssot_tracking_page_base_url', '' );
 		if ( ! empty( $base_url ) && ! empty( $order_number ) ) {
 			$link = $base_url . '/' . $order_number;
 		}
@@ -1640,6 +1597,22 @@ final class WCSSOT {
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		return apply_filters( 'wcssot_get_recipient_address', $address, $order, $this );
+	}
+
+	/**
+	 * Returns the specified option key from the options property.
+	 *
+	 * @since 0.2.0
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->get_option().
+	 * @see WCSSOT_Options_Manager->get_option()
+	 *
+	 * @param string $option The option key to get.
+	 * @param mixed $default The default value to return in case the option does not exist.
+	 *
+	 * @return mixed The option value requested.
+	 */
+	public function get_option( $option, $default = null ) {
+		return $this->get_options_manager()->get_option( $option, $default );
 	}
 
 	/**

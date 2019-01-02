@@ -37,6 +37,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WCSSOT_Options_Manager {
 	/**
+	 * @var array $options The list of options set/used by the plugin.
+	 */
+	private $options = [];
+
+	/**
 	 * @var array $options_required A list of option IDs that are required by the plugin.
 	 */
 	private $options_required = [];
@@ -106,6 +111,7 @@ class WCSSOT_Options_Manager {
 			'wcssot_api_access_key',
 			'wcssot_tracking_page_base_url',
 		], $this->wcssot, $this ) );
+		$this->set_options( get_option( 'wcssot_settings', [] ) );
 		/**
 		 * Fires after initialising the class properties.
 		 *
@@ -163,5 +169,84 @@ class WCSSOT_Options_Manager {
 			$this->wcssot,
 			$this
 		);
+	}
+
+	/**
+	 * Returns the specified option key from the options property.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param string $option The option key to get.
+	 * @param mixed $default The default value to return in case the option does not exist.
+	 *
+	 * @return mixed The option value requested.
+	 */
+	public function get_option( $option, $default = null ) {
+		$options = $this->get_options();
+
+		/**
+		 * Filters the option requested.
+		 *
+		 * @since 0.6.0
+		 * @since 1.2.0 Moved from the main plugin class and added an extra parameter for the current object instance.
+		 *
+		 * @param mixed $value The option requested.
+		 * @param string $option The option key requested.
+		 * @param mixed $default The default value to return in case the option does not exist.
+		 * @param WCSSOT $wcssot The current class object.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		return apply_filters(
+			'wcssot_get_option',
+			( isset( $options[ $option ] ) ? $options[ $option ] : $default ),
+			$option,
+			$default,
+			$this->wcssot,
+			$this
+		);
+	}
+
+	/**
+	 * Returns the options property.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @return array The list of the plugin options.
+	 */
+	public function get_options() {
+		/**
+		 * Filters the plugin options list.
+		 *
+		 * @since 0.6.0
+		 * @since 1.2.0 Moved from the main plugin class and added an extra parameter for the current object instance.
+		 *
+		 * @param array $options The list of the plugin options.
+		 * @param WCSSOT $wcssot The current class object.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		return apply_filters( 'wcssot_get_options', $this->options, $this->wcssot, $this );
+	}
+
+	/**
+	 * Sets the options property.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param array $options The options list to set.
+	 *
+	 * @return void
+	 */
+	public function set_options( $options ) {
+		/**
+		 * Filters the options to be set.
+		 *
+		 * @since 0.6.0
+		 * @since 1.2.0 Moved from the main plugin class and added an extra parameter for the current object instance.
+		 *
+		 * @param array $options The options to be set.
+		 * @param WCSSOT $wcssot The current class object.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		$this->options = apply_filters( 'wcssot_set_options', $options, $this->wcssot, $this );
 	}
 }
