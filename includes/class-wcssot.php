@@ -48,6 +48,8 @@ final class WCSSOT {
 
 	/**
 	 * @var array $options_required A list of option IDs that are required by the plugin.
+	 * @deprecated 1.2.0 Use the options manager class (WCSSOT_Options_Manager).
+	 * @see WCSSOT_Options_Manager
 	 */
 	private $options_required = [];
 
@@ -156,21 +158,8 @@ final class WCSSOT {
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		$this->set_options_manager(
-			apply_filters( 'wcssot_set_default_options_manager', new WCSSOT_Options_Manager(), $this )
+			apply_filters( 'wcssot_set_default_options_manager', new WCSSOT_Options_Manager( $this ), $this )
 		);
-		/**
-		 * Filters the default options required by the plugin.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param array $options The default options required.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		$this->set_options_required( apply_filters( 'wcssot_set_default_options_required', [
-			'wcssot_api_base_url',
-			'wcssot_api_access_key',
-			'wcssot_tracking_page_base_url',
-		], $this ) );
 		/**
 		 * Filters the default order meta keys used for the WC_Order object.
 		 *
@@ -358,7 +347,7 @@ final class WCSSOT {
 	private function settings_exist() {
 		WCSSOT_Logger::debug( 'Checking if all required settings exist.' );
 		$exist = true;
-		foreach ( $this->options_required as $option_required ) {
+		foreach ( $this->get_options_manager()->get_options_required() as $option_required ) {
 			if ( empty( $this->options[ $option_required ] ) ) {
 				WCSSOT_Logger::error( "The setting '$option_required' is missing from the options!" );
 				$exist = false;
@@ -1657,40 +1646,28 @@ final class WCSSOT {
 	 * Returns the options required property.
 	 *
 	 * @since 0.2.0
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->get_options_required().
+	 * @see WCSSOT_Options_Manager->get_options_required()
 	 *
 	 * @return array The list of options required.
 	 */
 	public function get_options_required() {
-		/**
-		 * Filters the list of options required by the plugin.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param array $options The list of options required.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		return apply_filters( 'wcssot_get_options_required', $this->options_required, $this );
+		return $this->get_options_manager()->get_options_required();
 	}
 
 	/**
 	 * Sets the options required property.
 	 *
 	 * @since 0.2.0
+	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->set_options_required().
+	 * @see WCSSOT_Options_Manager->set_options_required()
 	 *
 	 * @param array $options_required The list of options required to set.
 	 *
 	 * @return void
 	 */
 	public function set_options_required( $options_required ) {
-		/**
-		 * Filters the list of options required to set.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param array $options The list of options required to set.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		$this->options_required = apply_filters( 'wcssot_set_options_required', $options_required, $this );
+		$this->get_options_manager()->set_options_required( $options_required );
 	}
 
 	/**

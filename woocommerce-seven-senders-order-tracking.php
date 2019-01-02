@@ -71,17 +71,17 @@ register_activation_hook( __FILE__, 'wcssot_install' );
  * @return void
  */
 function wcssot_init() {
-    if (! defined('WC_VERSION') || version_compare(WC_VERSION, '3.5.0') < 0) {
-        return;
-    }
+	if ( ! defined( 'WC_VERSION' ) || version_compare( WC_VERSION, '3.5.0' ) < 0 ) {
+		return;
+	}
 	try {
 		spl_autoload_register( 'wcssot_autoloader' );
 	} catch ( Exception $exception ) {
 		error_log( '[WCSSOT] ERROR: Could not register project autoloader.' );
 	}
 
-	if ( empty( $_GLOBALS['WCSSOT'] ) ) {
-		$_GLOBALS['WCSSOT'] = new WCSSOT();
+	if ( empty( $GLOBALS['WCSSOT'] ) ) {
+		$GLOBALS['WCSSOT'] = new WCSSOT();
 	}
 }
 
