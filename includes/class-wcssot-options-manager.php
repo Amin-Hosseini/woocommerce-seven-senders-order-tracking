@@ -504,6 +504,26 @@ class WCSSOT_Options_Manager {
 				'label_for' => 'wcssot_tracking_page_base_url',
 			]
 		);
+
+		/**
+		 * Add the 'Delivery Date Tracking' section
+		 */
+		add_settings_section(
+			'wcssot_settings_delivery_date_tracking_section',
+			__( 'Delivery Date Tracking', 'woocommerce-seven-senders-order-tracking' ),
+			[ $this, 'render_admin_delivery_date_tracking_section' ],
+			'wcssot_settings'
+		);
+		add_settings_field(
+			'wcssot_delivery_date_tracking_enabled',
+			__( 'Tracking Enabled', 'woocommerce-seven-senders-order-tracking' ),
+			[ $this, 'render_admin_delivery_date_tracking_enabled_field' ],
+			'wcssot_settings',
+			'wcssot_settings_delivery_date_tracking_section',
+			[
+				'label_for' => 'wcssot_delivery_date_tracking_enabled',
+			]
+		);
 		/**
 		 * Fires after registering the administration settings.
 		 *
@@ -867,6 +887,73 @@ class WCSSOT_Options_Manager {
 		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
 		do_action( 'wcssot_after_render_admin_tracking_page_base_url_field', $this->wcssot, $this );
+	}
+
+	/**
+	 * Renders the Delivery Date Tracking section.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	public function render_admin_delivery_date_tracking_section() {
+		/**
+		 * Fires before rendering the Delivery Date Tracking section.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		do_action( 'wcssot_before_render_admin_delivery_date_tracking_section', $this );
+		WCSSOT_Logger::debug( "Rendering the 'Delivery Date Tracking' section subtitle." );
+		?>
+        <p><?php esc_html_e(
+				'Use this section to set up the delivery date tracking feature.',
+				'woocommerce-seven-senders-order-tracking'
+			); ?></p>
+		<?php
+		/**
+		 * Fires after rendering the Delivery Date Tracking section.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		do_action( 'wcssot_after_render_admin_delivery_date_tracking_section', $this );
+	}
+
+	/**
+	 * Renders the Delivery Date Tracking Enabled setting field.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	public function render_admin_delivery_date_tracking_enabled_field() {
+		/**
+		 * Fires before rendering the Tracking Enabled field.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		do_action( 'wcssot_before_render_admin_delivery_date_tracking_enabled_field', $this );
+		WCSSOT_Logger::debug( "Rendering the 'Tracking Enabled' field." );
+		?>
+        <input type="checkbox"
+               name="wcssot_delivery_date_tracking_enabled"
+               id="wcssot_delivery_date_tracking_enabled"
+               class="wcssot_form_field wcssot_form_checkbox"
+        >
+		<?php
+		/**
+		 * Fires after rendering the Delivery Date Tracking Enabled field.
+		 *
+		 * @since 2.0.0
+         *
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		do_action( 'wcssot_after_render_admin_delivery_date_tracking_enabled_field', $this->wcssot, $this );
 	}
 
 	/**
