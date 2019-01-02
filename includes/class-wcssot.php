@@ -227,27 +227,6 @@ final class WCSSOT {
 	}
 
 	/**
-	 * Sets the instance of the options manager class.
-	 *
-	 * @since 1.2.0
-	 *
-	 * @param WCSSOT_Options_Manager $instance The instance of the options manager class.
-	 *
-	 * @return void
-	 */
-	public function set_options_manager( $instance ) {
-		/**
-		 * Filters the instance of the options manager class.
-		 *
-		 * @since 1.2.0
-		 *
-		 * @param WCSSOT_Options_Manager $instance The instance of the options manager class.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		$this->options_manager = apply_filters( 'wcssot_set_options_manager', $instance, $this );
-	}
-
-	/**
 	 * Returns the specified option key from the options property.
 	 *
 	 * @since 0.2.0
@@ -396,6 +375,46 @@ final class WCSSOT {
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		return apply_filters( 'wcssot_settings_exist', $exist, $this );
+	}
+
+	/**
+	 * Returns the instance of the options manager class.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @return WCSSOT_Options_Manager $instance The instance of the options manager class.
+	 */
+	public function get_options_manager() {
+		/**
+		 * Filters the options manager instance to return.
+		 *
+		 * @since 1.2.0
+		 *
+		 * @param WCSSOT_Options_Manager $instance The options manager instance.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		return apply_filters( 'wcssot_get_options_manager', $this->options_manager, $this );
+	}
+
+	/**
+	 * Sets the instance of the options manager class.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param WCSSOT_Options_Manager $instance The instance of the options manager class.
+	 *
+	 * @return void
+	 */
+	public function set_options_manager( $instance ) {
+		/**
+		 * Filters the instance of the options manager class.
+		 *
+		 * @since 1.2.0
+		 *
+		 * @param WCSSOT_Options_Manager $instance The instance of the options manager class.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		$this->options_manager = apply_filters( 'wcssot_set_options_manager', $instance, $this );
 	}
 
 	/**
