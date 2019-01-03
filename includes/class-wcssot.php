@@ -331,7 +331,7 @@ final class WCSSOT {
 	 */
 	public function handle_weekly_delivery_date_tracking_event() {
 		/**
-		 * @todo Implement the daily delivery date tracking event handling.
+		 * @todo Implement the weekly delivery date tracking event handling.
 		 */
 	}
 
