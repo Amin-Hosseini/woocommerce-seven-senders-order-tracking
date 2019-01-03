@@ -646,7 +646,9 @@ class WCSSOT_Options_Manager {
 		 */
 		if ( apply_filters( 'wcssot_is_delivery_date_tracking_enabled', $delivery_date_tracking_enabled, $input, $this ) ) {
 			$this->activate_scheduled_events();
-		}
+		} else {
+		    $this->deactivate_scheduled_events();
+        }
 		add_settings_error( 'wcssot', 'wcssot_success', esc_html__(
 			'The settings have been saved successfully!',
 			'woocommerce-seven-senders-order-tracking'
@@ -696,6 +698,40 @@ class WCSSOT_Options_Manager {
 		}
 		if ( ! wp_next_scheduled( $weekly_event_hook ) ) {
 			wp_schedule_event( time(), 'weekly', $weekly_event_hook );
+		}
+	}
+
+	/**
+	 * Deactivates the scheduled events for the delivery date tracking feature.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	public function deactivate_scheduled_events() {
+		/**
+		 * Filters the name of the daily scheduled event hook.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param string $hook The name of the hook.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		$daily_event_hook = apply_filters( 'wcssot_daily_event_hook', 'wcssot_daily_delivery_date_tracking', $this );
+		/**
+		 * Filters the name of the weekly scheduled event hook.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param string $hook The name of the hook.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		$weekly_event_hook = apply_filters( 'wcssot_weekly_event_hook', 'wcssot_weekly_delivery_date_tracking', $this );
+		if ( wp_next_scheduled( $daily_event_hook ) ) {
+			wp_clear_scheduled_hook( $daily_event_hook );
+		}
+		if ( wp_next_scheduled( $weekly_event_hook ) ) {
+			wp_clear_scheduled_hook( $weekly_event_hook );
 		}
 	}
 
