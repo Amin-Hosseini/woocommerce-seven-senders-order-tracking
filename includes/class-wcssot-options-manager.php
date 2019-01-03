@@ -637,12 +637,12 @@ class WCSSOT_Options_Manager {
 		$input['wcssot_delivery_date_tracking_enabled'] = $delivery_date_tracking_enabled;
 		/**
 		 * Filters whether the Delivery Date Tracking option is enabled.
-         *
-         * @since 2.0.0
-         *
-         * @param bool $enabled Whether the options is enabled.
-         * @param array $input The input list from the form.
-         * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param bool $enabled Whether the options is enabled.
+		 * @param array $input The input list from the form.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
 		if ( apply_filters( 'wcssot_is_delivery_date_tracking_enabled', $delivery_date_tracking_enabled, $input, $this ) ) {
 			$this->activate_scheduled_events();
@@ -667,28 +667,28 @@ class WCSSOT_Options_Manager {
 
 	/**
 	 * Activates the scheduled events for the delivery date tracking feature.
-     *
-     * @since 2.0.0
-     *
-     * @return void
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
 	 */
 	public function activate_scheduled_events() {
 		/**
 		 * Filters the name of the daily scheduled event hook.
-         *
-         * @since 2.0.0
-         *
-         * @param string $hook The name of the hook.
-         * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param string $hook The name of the hook.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
-		$daily_event_hook  = apply_filters( 'wcssot_daily_event_hook', 'wcssot_daily_delivery_date_tracking', $this );
+		$daily_event_hook = apply_filters( 'wcssot_daily_event_hook', 'wcssot_daily_delivery_date_tracking', $this );
 		/**
 		 * Filters the name of the weekly scheduled event hook.
-         *
-         * @since 2.0.0
-         *
-         * @param string $hook The name of the hook.
-         * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param string $hook The name of the hook.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
 		$weekly_event_hook = apply_filters( 'wcssot_weekly_event_hook', 'wcssot_weekly_delivery_date_tracking', $this );
 		if ( ! wp_next_scheduled( $daily_event_hook ) ) {
@@ -1018,7 +1018,10 @@ class WCSSOT_Options_Manager {
                name="wcssot_delivery_date_tracking_enabled"
                id="wcssot_delivery_date_tracking_enabled"
                class="wcssot_form_field wcssot_form_checkbox"
-			<?php if ( $this->get_option( 'wcssot_delivery_date_tracking_enabled', false ) ) : ?>
+			<?php if (
+				$this->get_option( 'wcssot_delivery_date_tracking_enabled', false )
+				&& wp_next_scheduled( apply_filters( 'wcssot_daily_event_hook', 'wcssot_daily_delivery_date_tracking', $this ) )
+			) : ?>
                 checked="checked"
 			<?php endif; ?>
         >
