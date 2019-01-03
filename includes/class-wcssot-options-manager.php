@@ -1144,27 +1144,34 @@ class WCSSOT_Options_Manager {
 		 */
 		do_action( 'wcssot_before_render_admin_daily_delivery_date_tracking_enabled_field', $this );
 		WCSSOT_Logger::debug( "Rendering the 'Daily Tracking Enabled' field." );
+		/**
+         * Filters the name of the daily scheduled event hook.
+         *
+         * @since 2.0.0
+         *
+         * @param string $hook The name of the hook.
+         * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+         */
+		$next_event_date = wp_next_scheduled(
+			apply_filters( 'wcssot_daily_event_hook', 'wcssot_daily_delivery_date_tracking', $this )
+		);
 		?>
         <input type="checkbox"
                name="wcssot_daily_delivery_date_tracking_enabled"
                id="wcssot_daily_delivery_date_tracking_enabled"
                class="wcssot_form_field wcssot_form_checkbox"
-			<?php if (
-				/**
-				 * Filters the name of the daily scheduled event hook.
-				 *
-				 * @since 2.0.0
-				 *
-				 * @param string $hook The name of the hook.
-				 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
-				 */
-			wp_next_scheduled(
-				apply_filters( 'wcssot_daily_event_hook', 'wcssot_daily_delivery_date_tracking', $this )
-			)
-			) : ?>
+			<?php if ( $next_event_date ) : ?>
                 checked="checked"
 			<?php endif; ?>
         >
+		<?php if ( $next_event_date ) : ?>
+            <span class="wcssot_helper_text">&nbsp;<?php
+				printf(
+					esc_html__( 'Next event on %s.', 'woocommerce-seven-senders-order-tracking' ),
+					date( 'l, F jS Y \a\t H:i:s (T)', $next_event_date )
+				);
+				?></span>
+		<?php endif; ?>
 		<?php
 		/**
 		 * Fires after rendering the Daily Delivery Date Tracking Enabled field.
@@ -1193,27 +1200,34 @@ class WCSSOT_Options_Manager {
 		 */
 		do_action( 'wcssot_before_render_admin_weekly_delivery_date_tracking_enabled_field', $this );
 		WCSSOT_Logger::debug( "Rendering the 'Weekly Tracking Enabled' field." );
+		/**
+		 * Filters the name of the weekly scheduled event hook.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param string $hook The name of the hook.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		$next_event_date = wp_next_scheduled(
+			apply_filters( 'wcssot_weekly_event_hook', 'wcssot_weekly_delivery_date_tracking', $this )
+		);
 		?>
         <input type="checkbox"
                name="wcssot_weekly_delivery_date_tracking_enabled"
                id="wcssot_weekly_delivery_date_tracking_enabled"
                class="wcssot_form_field wcssot_form_checkbox"
-			<?php if (
-				/**
-				 * Filters the name of the weekly scheduled event hook.
-				 *
-				 * @since 2.0.0
-				 *
-				 * @param string $hook The name of the hook.
-				 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
-				 */
-			wp_next_scheduled(
-				apply_filters( 'wcssot_weekly_event_hook', 'wcssot_weekly_delivery_date_tracking', $this )
-			)
-			) : ?>
+			<?php if ( $next_event_date ) : ?>
                 checked="checked"
 			<?php endif; ?>
         >
+		<?php if ( $next_event_date ) : ?>
+            <span class="wcssot_helper_text">&nbsp;<?php
+				printf(
+					esc_html__( 'Next event on %s.', 'woocommerce-seven-senders-order-tracking' ),
+					date( 'l, F jS Y \a\t H:i:s (T)', $next_event_date )
+				);
+				?></span>
+		<?php endif; ?>
 		<?php
 		/**
 		 * Fires after rendering the Weekly Delivery Date Tracking Enabled field.
