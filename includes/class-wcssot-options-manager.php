@@ -480,13 +480,23 @@ class WCSSOT_Options_Manager {
 			'wcssot_settings'
 		);
 		add_settings_field(
-			'wcssot_delivery_date_tracking_enabled',
-			__( 'Tracking Enabled', 'woocommerce-seven-senders-order-tracking' ),
-			[ $this, 'render_admin_delivery_date_tracking_enabled_field' ],
+			'wcssot_daily_delivery_date_tracking_enabled',
+			__( 'Daily Tracking Enabled', 'woocommerce-seven-senders-order-tracking' ),
+			[ $this, 'render_admin_daily_delivery_date_tracking_enabled_field' ],
 			'wcssot_settings',
 			'wcssot_settings_delivery_date_tracking_section',
 			[
-				'label_for' => 'wcssot_delivery_date_tracking_enabled',
+				'label_for' => 'wcssot_daily_delivery_date_tracking_enabled',
+			]
+		);
+		add_settings_field(
+			'wcssot_weekly_delivery_date_tracking_enabled',
+			__( 'Weekly Tracking Enabled', 'woocommerce-seven-senders-order-tracking' ),
+			[ $this, 'render_admin_weekly_delivery_date_tracking_enabled_field' ],
+			'wcssot_settings',
+			'wcssot_settings_delivery_date_tracking_section',
+			[
+				'label_for' => 'wcssot_weekly_delivery_date_tracking_enabled',
 			]
 		);
 		/**
@@ -525,10 +535,11 @@ class WCSSOT_Options_Manager {
 
 			return $input;
 		}
-		$api_base_url                   = rtrim( trim( $_POST['wcssot_api_base_url'] ), '/' );
-		$api_access_key                 = trim( $_POST['wcssot_api_access_key'] );
-		$tracking_page_base_url         = rtrim( trim( $_POST['wcssot_tracking_page_base_url'] ), '/' );
-		$delivery_date_tracking_enabled = isset( $_POST['wcssot_delivery_date_tracking_enabled'] ) ? true : false;
+		$api_base_url                          = rtrim( trim( $_POST['wcssot_api_base_url'] ), '/' );
+		$api_access_key                        = trim( $_POST['wcssot_api_access_key'] );
+		$tracking_page_base_url                = rtrim( trim( $_POST['wcssot_tracking_page_base_url'] ), '/' );
+		$daily_delivery_date_tracking_enabled  = isset( $_POST['wcssot_daily_delivery_date_tracking_enabled'] ) ? true : false;
+		$weekly_delivery_date_tracking_enabled = isset( $_POST['wcssot_weekly_delivery_date_tracking_enabled'] ) ? true : false;
 		/**
 		 * Filters whether the API Base URL input is valid.
 		 *
@@ -607,36 +618,86 @@ class WCSSOT_Options_Manager {
 			return $input;
 		}
 		/**
-		 * Filters whether the Delivery Date Tracking Enabled field is valid.
+		 * Filters whether the Daily Delivery Date Tracking Enabled field is valid.
 		 *
 		 * @since 2.0.0
 		 *
 		 * @param bool $valid Whether the field is valid.
-		 * @param bool $delivery_date_tracking_enabled The value of the field.
+		 * @param bool $daily_delivery_date_tracking_enabled The value of the field.
 		 * @param array $input The input list to sanitise.
 		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
 		if ( ! apply_filters(
-			'wcssot_is_delivery_date_tracking_enabled_valid',
-			is_bool( $delivery_date_tracking_enabled ),
-			$delivery_date_tracking_enabled,
+			'wcssot_is_daily_delivery_date_tracking_enabled_valid',
+			is_bool( $daily_delivery_date_tracking_enabled ),
+			$daily_delivery_date_tracking_enabled,
 			$input,
 			$this
 		) ) {
 			add_settings_error( 'wcssot', 'wcssot_error', sprintf( esc_html__(
-				'The field "%s" contains an invalid URL.',
+				'The field "%s" is not a valid boolean value.',
 				'woocommerce-seven-senders-order-tracking'
-			), 'Delivery Date Tracking Enabled' ) );
-			WCSSOT_Logger::error( "The 'Delivery Date Tracking Enabled' field is invalid." );
+			), 'Daily Tracking Enabled' ) );
+			WCSSOT_Logger::error( "The 'Daily Tracking Enabled' field is invalid." );
 
 			return $input;
 		}
-		$input['wcssot_api_base_url']                   = $api_base_url;
-		$input['wcssot_api_access_key']                 = $api_access_key;
-		$input['wcssot_tracking_page_base_url']         = $tracking_page_base_url;
-		$input['wcssot_delivery_date_tracking_enabled'] = $delivery_date_tracking_enabled;
 		/**
-		 * Filters whether the Delivery Date Tracking option is enabled.
+		 * Filters whether the Weekly Delivery Date Tracking Enabled field is valid.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param bool $valid Whether the field is valid.
+		 * @param bool $weekly_delivery_date_tracking_enabled The value of the field.
+		 * @param array $input The input list to sanitise.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		if ( ! apply_filters(
+			'wcssot_is_weekly_delivery_date_tracking_enabled_valid',
+			is_bool( $weekly_delivery_date_tracking_enabled ),
+			$weekly_delivery_date_tracking_enabled,
+			$input,
+			$this
+		) ) {
+			add_settings_error( 'wcssot', 'wcssot_error', sprintf( esc_html__(
+				'The field "%s" is not a valid boolean value.',
+				'woocommerce-seven-senders-order-tracking'
+			), 'Weekly Tracking Enabled' ) );
+			WCSSOT_Logger::error( "The 'Weekly Tracking Enabled' field is invalid." );
+
+			return $input;
+		}
+		$input['wcssot_api_base_url']           = $api_base_url;
+		$input['wcssot_api_access_key']         = $api_access_key;
+		$input['wcssot_tracking_page_base_url'] = $tracking_page_base_url;
+		/**
+		 * Filters the name of the daily scheduled event hook.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param string $hook The name of the hook.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		$daily_event_hook_name = apply_filters(
+			'wcssot_daily_event_hook',
+			'wcssot_daily_delivery_date_tracking',
+			$this
+		);
+		/**
+		 * Filters the name of the weekly scheduled event hook.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param string $hook The name of the hook.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		$weekly_event_hook_name = apply_filters(
+			'wcssot_weekly_event_hook',
+			'wcssot_weekly_delivery_date_tracking',
+			$this
+		);
+		/**
+		 * Filters whether the Daily Delivery Date Tracking option is enabled.
 		 *
 		 * @since 2.0.0
 		 *
@@ -644,10 +705,78 @@ class WCSSOT_Options_Manager {
 		 * @param array $input The input list from the form.
 		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
-		if ( apply_filters( 'wcssot_is_delivery_date_tracking_enabled', $delivery_date_tracking_enabled, $input, $this ) ) {
-			$this->activate_scheduled_events();
+		if ( apply_filters(
+			'wcssot_is_daily_delivery_date_tracking_enabled',
+			$daily_delivery_date_tracking_enabled,
+			$input,
+			$this
+		) ) {
+			/**
+			 * Filters the Daily Delivery Date Tracking event start timestamp.
+			 *
+			 * @since 2.0.0
+			 *
+			 * @param int $timestamp The timestamp of the start datetime for the daily event.
+			 * @param string $hook The name of the event hook.
+			 * @param string $recurrence The recurrence of the event.
+			 * @param array $input The input list from the form.
+			 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+			 */
+			$this->activate_scheduled_events(
+				apply_filters(
+					'wcssot_daily_delivery_date_tracking_event_start_timestamp',
+					strtotime( '+1 day 00:00:00 UTC' ),
+					$daily_event_hook_name,
+					'daily',
+					$input,
+					$this
+				),
+				$daily_event_hook_name,
+				'daily'
+			);
 		} else {
-			$this->deactivate_scheduled_events();
+			$this->deactivate_scheduled_events( $daily_event_hook_name );
+		}
+		/**
+		 * Filters whether the Weekly Delivery Date Tracking option is enabled.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param bool $enabled Whether the options is enabled.
+		 * @param array $input The input list from the form.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		if ( apply_filters(
+			'wcssot_is_weekly_delivery_date_tracking_enabled',
+			$weekly_delivery_date_tracking_enabled,
+			$input,
+			$this
+		) ) {
+			/**
+			 * Filters the Weekly Delivery Date Tracking event start timestamp.
+			 *
+			 * @since 2.0.0
+			 *
+			 * @param int $timestamp The timestamp of the start datetime for the weekly event.
+			 * @param string $hook The name of the event hook.
+			 * @param string $recurrence The recurrence of the event.
+			 * @param array $input The input list from the form.
+			 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+			 */
+			$this->activate_scheduled_events(
+				apply_filters(
+					'wcssot_weekly_delivery_date_tracking_event_start_timestamp',
+					strtotime( 'Sunday 01:00:00 UTC' ),
+					$weekly_event_hook_name,
+					'weekly',
+					$input,
+					$this
+				),
+				$weekly_event_hook_name,
+				'weekly'
+			);
+		} else {
+			$this->deactivate_scheduled_events( $weekly_event_hook_name );
 		}
 		add_settings_error( 'wcssot', 'wcssot_success', esc_html__(
 			'The settings have been saved successfully!',
@@ -672,32 +801,15 @@ class WCSSOT_Options_Manager {
 	 *
 	 * @since 2.0.0
 	 *
+	 * @param int $start
+	 * @param string $hook
+	 * @param string $recurrence
+	 *
 	 * @return void
 	 */
-	public function activate_scheduled_events() {
-		/**
-		 * Filters the name of the daily scheduled event hook.
-		 *
-		 * @since 2.0.0
-		 *
-		 * @param string $hook The name of the hook.
-		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
-		 */
-		$daily_event_hook = apply_filters( 'wcssot_daily_event_hook', 'wcssot_daily_delivery_date_tracking', $this );
-		/**
-		 * Filters the name of the weekly scheduled event hook.
-		 *
-		 * @since 2.0.0
-		 *
-		 * @param string $hook The name of the hook.
-		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
-		 */
-		$weekly_event_hook = apply_filters( 'wcssot_weekly_event_hook', 'wcssot_weekly_delivery_date_tracking', $this );
-		if ( ! wp_next_scheduled( $daily_event_hook ) ) {
-			wp_schedule_event( time(), 'daily', $daily_event_hook );
-		}
-		if ( ! wp_next_scheduled( $weekly_event_hook ) ) {
-			wp_schedule_event( time(), 'weekly', $weekly_event_hook );
+	public function activate_scheduled_events( $start, $hook, $recurrence ) {
+		if ( ! wp_next_scheduled( $hook ) ) {
+			wp_schedule_event( $start, $recurrence, $hook );
 		}
 	}
 
@@ -706,32 +818,13 @@ class WCSSOT_Options_Manager {
 	 *
 	 * @since 2.0.0
 	 *
+	 * @param string $hook
+	 *
 	 * @return void
 	 */
-	public function deactivate_scheduled_events() {
-		/**
-		 * Filters the name of the daily scheduled event hook.
-		 *
-		 * @since 2.0.0
-		 *
-		 * @param string $hook The name of the hook.
-		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
-		 */
-		$daily_event_hook = apply_filters( 'wcssot_daily_event_hook', 'wcssot_daily_delivery_date_tracking', $this );
-		/**
-		 * Filters the name of the weekly scheduled event hook.
-		 *
-		 * @since 2.0.0
-		 *
-		 * @param string $hook The name of the hook.
-		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
-		 */
-		$weekly_event_hook = apply_filters( 'wcssot_weekly_event_hook', 'wcssot_weekly_delivery_date_tracking', $this );
-		if ( wp_next_scheduled( $daily_event_hook ) ) {
-			wp_clear_scheduled_hook( $daily_event_hook );
-		}
-		if ( wp_next_scheduled( $weekly_event_hook ) ) {
-			wp_clear_scheduled_hook( $weekly_event_hook );
+	public function deactivate_scheduled_events( $hook ) {
+		if ( wp_next_scheduled( $hook ) ) {
+			wp_clear_scheduled_hook( $hook );
 		}
 	}
 
@@ -1018,8 +1111,8 @@ class WCSSOT_Options_Manager {
 		WCSSOT_Logger::debug( "Rendering the 'Delivery Date Tracking' section subtitle." );
 		?>
         <p><?php esc_html_e(
-				'Use this section to set up the delivery date tracking feature. Use the checkbox to 
-				enable/disable the scheduled events. The state of the checkbox reflects the state of the events 
+				'Use this section to set up the delivery date tracking feature. Use the checkboxes to 
+				enable/disable the scheduled events. The state of the checkboxes reflect the state of the events 
 				as well.',
 				'woocommerce-seven-senders-order-tracking'
 			); ?></p>
@@ -1035,29 +1128,28 @@ class WCSSOT_Options_Manager {
 	}
 
 	/**
-	 * Renders the Delivery Date Tracking Enabled setting field.
+	 * Renders the Daily Delivery Date Tracking Enabled setting field.
 	 *
 	 * @since 2.0.0
 	 *
 	 * @return void
 	 */
-	public function render_admin_delivery_date_tracking_enabled_field() {
+	public function render_admin_daily_delivery_date_tracking_enabled_field() {
 		/**
-		 * Fires before rendering the Tracking Enabled field.
+		 * Fires before rendering the Daily Tracking Enabled field.
 		 *
 		 * @since 2.0.0
 		 *
 		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
-		do_action( 'wcssot_before_render_admin_delivery_date_tracking_enabled_field', $this );
-		WCSSOT_Logger::debug( "Rendering the 'Tracking Enabled' field." );
+		do_action( 'wcssot_before_render_admin_daily_delivery_date_tracking_enabled_field', $this );
+		WCSSOT_Logger::debug( "Rendering the 'Daily Tracking Enabled' field." );
 		?>
         <input type="checkbox"
-               name="wcssot_delivery_date_tracking_enabled"
-               id="wcssot_delivery_date_tracking_enabled"
+               name="wcssot_daily_delivery_date_tracking_enabled"
+               id="wcssot_daily_delivery_date_tracking_enabled"
                class="wcssot_form_field wcssot_form_checkbox"
 			<?php if (
-				$this->get_option( 'wcssot_delivery_date_tracking_enabled', false )
 				/**
 				 * Filters the name of the daily scheduled event hook.
 				 *
@@ -1066,9 +1158,47 @@ class WCSSOT_Options_Manager {
 				 * @param string $hook The name of the hook.
 				 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 				 */
-				&& wp_next_scheduled(
-					apply_filters( 'wcssot_daily_event_hook', 'wcssot_daily_delivery_date_tracking', $this )
-				)
+			wp_next_scheduled(
+				apply_filters( 'wcssot_daily_event_hook', 'wcssot_daily_delivery_date_tracking', $this )
+			)
+			) : ?>
+                checked="checked"
+			<?php endif; ?>
+        >
+		<?php
+		/**
+		 * Fires after rendering the Daily Delivery Date Tracking Enabled field.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		do_action( 'wcssot_after_render_admin_daily_delivery_date_tracking_enabled_field', $this->wcssot, $this );
+	}
+
+	/**
+	 * Renders the Weekly Delivery Date Tracking Enabled setting field.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	public function render_admin_weekly_delivery_date_tracking_enabled_field() {
+		/**
+		 * Fires before rendering the Weekly Tracking Enabled field.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+		 */
+		do_action( 'wcssot_before_render_admin_weekly_delivery_date_tracking_enabled_field', $this );
+		WCSSOT_Logger::debug( "Rendering the 'Weekly Tracking Enabled' field." );
+		?>
+        <input type="checkbox"
+               name="wcssot_weekly_delivery_date_tracking_enabled"
+               id="wcssot_weekly_delivery_date_tracking_enabled"
+               class="wcssot_form_field wcssot_form_checkbox"
+			<?php if (
 				/**
 				 * Filters the name of the weekly scheduled event hook.
 				 *
@@ -1077,22 +1207,22 @@ class WCSSOT_Options_Manager {
 				 * @param string $hook The name of the hook.
 				 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 				 */
-				&& wp_next_scheduled(
-					apply_filters( 'wcssot_week_event_hook', 'wcssot_weekly_delivery_date_tracking', $this )
-				)
+			wp_next_scheduled(
+				apply_filters( 'wcssot_weekly_event_hook', 'wcssot_weekly_delivery_date_tracking', $this )
+			)
 			) : ?>
                 checked="checked"
 			<?php endif; ?>
         >
 		<?php
 		/**
-		 * Fires after rendering the Delivery Date Tracking Enabled field.
+		 * Fires after rendering the Weekly Delivery Date Tracking Enabled field.
 		 *
 		 * @since 2.0.0
 		 *
 		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
-		do_action( 'wcssot_after_render_admin_delivery_date_tracking_enabled_field', $this->wcssot, $this );
+		do_action( 'wcssot_after_render_admin_weekly_delivery_date_tracking_enabled_field', $this->wcssot, $this );
 	}
 
 	/**
