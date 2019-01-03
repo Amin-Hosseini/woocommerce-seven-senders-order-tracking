@@ -647,8 +647,8 @@ class WCSSOT_Options_Manager {
 		if ( apply_filters( 'wcssot_is_delivery_date_tracking_enabled', $delivery_date_tracking_enabled, $input, $this ) ) {
 			$this->activate_scheduled_events();
 		} else {
-		    $this->deactivate_scheduled_events();
-        }
+			$this->deactivate_scheduled_events();
+		}
 		add_settings_error( 'wcssot', 'wcssot_success', esc_html__(
 			'The settings have been saved successfully!',
 			'woocommerce-seven-senders-order-tracking'
@@ -1018,7 +1018,9 @@ class WCSSOT_Options_Manager {
 		WCSSOT_Logger::debug( "Rendering the 'Delivery Date Tracking' section subtitle." );
 		?>
         <p><?php esc_html_e(
-				'Use this section to set up the delivery date tracking feature.',
+				'Use this section to set up the delivery date tracking feature. Use the checkbox to 
+				enable/disable the scheduled events. The state of the checkbox reflects the state of the events 
+				as well.',
 				'woocommerce-seven-senders-order-tracking'
 			); ?></p>
 		<?php
@@ -1056,24 +1058,28 @@ class WCSSOT_Options_Manager {
                class="wcssot_form_field wcssot_form_checkbox"
 			<?php if (
 				$this->get_option( 'wcssot_delivery_date_tracking_enabled', false )
-                /**
-                 * Filters the name of the daily scheduled event hook.
-                 *
-                 * @since 2.0.0
-                 *
-                 * @param string $hook The name of the hook.
-                 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
-                 */
-				&& wp_next_scheduled( apply_filters( 'wcssot_daily_event_hook', 'wcssot_daily_delivery_date_tracking', $this ) )
-                /**
-                 * Filters the name of the weekly scheduled event hook.
-                 *
-                 * @since 2.0.0
-                 *
-                 * @param string $hook The name of the hook.
-                 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
-                 */
-				&& wp_next_scheduled( apply_filters( 'wcssot_week_event_hook', 'wcssot_weekly_delivery_date_tracking', $this ) )
+				/**
+				 * Filters the name of the daily scheduled event hook.
+				 *
+				 * @since 2.0.0
+				 *
+				 * @param string $hook The name of the hook.
+				 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+				 */
+				&& wp_next_scheduled(
+					apply_filters( 'wcssot_daily_event_hook', 'wcssot_daily_delivery_date_tracking', $this )
+				)
+				/**
+				 * Filters the name of the weekly scheduled event hook.
+				 *
+				 * @since 2.0.0
+				 *
+				 * @param string $hook The name of the hook.
+				 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+				 */
+				&& wp_next_scheduled(
+					apply_filters( 'wcssot_week_event_hook', 'wcssot_weekly_delivery_date_tracking', $this )
+				)
 			) : ?>
                 checked="checked"
 			<?php endif; ?>
