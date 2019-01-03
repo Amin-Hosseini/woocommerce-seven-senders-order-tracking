@@ -270,6 +270,10 @@ final class WCSSOT {
 		add_action( 'woocommerce_order_status_completed', [ $this, 'export_shipment' ], 10, 2 );
 		add_action( 'woocommerce_email_before_order_table', [ $this, 'render_tracking_information' ], 10, 1 );
 		/**
+		 * Initialise hooks for the scheduled events.
+		 */
+		add_filter( 'cron_schedules', [ $this, 'get_weekly_cron_schedule' ], 10, 1 );
+		/**
 		 * Fires after initialising the hooks.
 		 *
 		 * @since 0.6.0
@@ -277,6 +281,24 @@ final class WCSSOT {
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		do_action( 'wcssot_after_initialise_hooks', $this );
+	}
+
+	/**
+	 * Registers the weekly schedule for the scheduled events.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array $schedules
+	 *
+	 * @return array
+	 */
+	public function get_weekly_cron_schedule( $schedules ) {
+		$schedules['weekly'] = [
+			'interval' => 604800,
+			'display'  => __( 'Once Weekly', 'woocommerce-seven-senders-order-tracking' )
+		];
+
+		return $schedules;
 	}
 
 	/**
