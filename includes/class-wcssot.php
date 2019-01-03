@@ -274,6 +274,32 @@ final class WCSSOT {
 		 */
 		add_filter( 'cron_schedules', [ $this, 'get_weekly_cron_schedule' ], 10, 1 );
 		/**
+		 * Filters the name of the daily scheduled event hook.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param string $hook The name of the hook.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current options manager class object.
+		 */
+		add_filter( apply_filters(
+			'wcssot_daily_event_hook',
+			'wcssot_daily_delivery_date_tracking',
+			$this->get_options_manager()
+		), [ $this, 'handle_daily_delivery_date_tracking_event' ] );
+		/**
+		 * Filters the name of the weekly scheduled event hook.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param string $hook The name of the hook.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The options manager class object.
+		 */
+		add_filter( apply_filters(
+			'wcssot_weekly_event_hook',
+			'wcssot_weekly_delivery_date_tracking',
+			$this->get_options_manager()
+		), [ $this, 'handle_weekly_delivery_date_tracking_event' ] );
+		/**
 		 * Fires after initialising the hooks.
 		 *
 		 * @since 0.6.0
@@ -281,6 +307,32 @@ final class WCSSOT {
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		do_action( 'wcssot_after_initialise_hooks', $this );
+	}
+
+	/**
+	 * Handles the Daily Delivery Date Tracking event.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	public function handle_daily_delivery_date_tracking_event() {
+		/**
+		 * @todo Implement the daily delivery date tracking event handling.
+		 */
+	}
+
+	/**
+	 * Handles the Weekly Delivery Date Tracking event.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	public function handle_weekly_delivery_date_tracking_event() {
+		/**
+		 * @todo Implement the daily delivery date tracking event handling.
+		 */
 	}
 
 	/**
