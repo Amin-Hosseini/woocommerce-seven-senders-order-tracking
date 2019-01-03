@@ -1020,6 +1020,14 @@ class WCSSOT_Options_Manager {
                class="wcssot_form_field wcssot_form_checkbox"
 			<?php if (
 				$this->get_option( 'wcssot_delivery_date_tracking_enabled', false )
+                /**
+                 * Filters the name of the daily scheduled event hook.
+                 *
+                 * @since 2.0.0
+                 *
+                 * @param string $hook The name of the hook.
+                 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+                 */
 				&& wp_next_scheduled( apply_filters( 'wcssot_daily_event_hook', 'wcssot_daily_delivery_date_tracking', $this ) )
 			) : ?>
                 checked="checked"
