@@ -1065,6 +1065,15 @@ class WCSSOT_Options_Manager {
                  * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
                  */
 				&& wp_next_scheduled( apply_filters( 'wcssot_daily_event_hook', 'wcssot_daily_delivery_date_tracking', $this ) )
+                /**
+                 * Filters the name of the weekly scheduled event hook.
+                 *
+                 * @since 2.0.0
+                 *
+                 * @param string $hook The name of the hook.
+                 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
+                 */
+				&& wp_next_scheduled( apply_filters( 'wcssot_week_event_hook', 'wcssot_weekly_delivery_date_tracking', $this ) )
 			) : ?>
                 checked="checked"
 			<?php endif; ?>
