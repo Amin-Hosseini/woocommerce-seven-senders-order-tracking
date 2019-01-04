@@ -317,9 +317,113 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function handle_daily_delivery_date_tracking_event() {
+		$this->sync_order_delivery_status(
+			apply_filters( 'wcssot_sync_daily_orders_from_days_ago', 10, $this ),
+			apply_filters( 'wcssot_sync_daily_orders_to_days_ago', 1, $this )
+		);
+	}
+
+	/**
+	 * Syncs the orders' delivery status using the Seven Senders API.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param int $from_days_ago The amount of days ago for the orders to start searching from.
+	 * @param int $to_days_ago The amount of days ago for the orders to start searching to.
+	 *
+	 * @return void
+	 */
+	public function sync_order_delivery_status( $from_days_ago, $to_days_ago ) {
+		$from_days_ago = absint( $from_days_ago );
+		$to_days_ago   = absint( $to_days_ago );
+		try {
+			$timezone  = new DateTimeZone( wc_timezone_string() );
+			$from_date = new DateTime( $from_days_ago . ' days ago', $timezone );
+			$to_date   = new DateTime( $to_days_ago . ' days ago', $timezone );
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not instantiate the date objects for the X days ago variables.' );
+
+			return;
+		}
+		global $wpdb;
+
+		$query  = $wpdb->prepare( "
+			SELECT p.ID
+			FROM {$wpdb->posts} AS p
+			WHERE p.post_type = %s
+			AND NULLIF((
+				SELECT meta_value
+				FROM {$wpdb->postmeta} AS pm
+				WHERE pm.post_id = p.ID
+				AND pm.meta_key = %s
+			), '') IS NULL
+			AND p.post_status IN ('wc-processing', 'wc-on-hold', 'wc-completed')
+			AND p.post_date BETWEEN %s AND %s
+		", [ 'shop_order', 'wcssot_delivered_at', $from_date->format( 'c' ), $to_date->format( 'c' ) ] );
+		$orders = $wpdb->get_col( $query );
+		if ( empty( $orders ) ) {
+			WCSSOT_Logger::debug( 'No orders need the delivery date synchronized.' );
+
+			return;
+		}
+		$params = [
+			'state'              => 'completed',
+			'order_date[before]' => $from_date->format( 'c' ),
+			'order_date[after]'  => $to_date->format( 'c' ),
+		];
+		if ( count( $orders ) === 1 ) {
+			$params['order_id'] = $orders[0];
+		}
+		try {
+			$remote_orders = $this->get_api()->get_orders( $params );
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not fetch order from the Seven Senders API.' );
+
+			return;
+		}
 		/**
-		 * @todo Implement the daily delivery date tracking event handling.
+		 * @todo: Match the fetched orders with the ones in the DB and add the meta values for the delivery date.
 		 */
+	}
+
+	/**
+	 * Returns the API manager instance.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return WCSSOT_API_Manager The API manager instance to return.
+	 */
+	public function get_api() {
+		/**
+		 * Filters the API manager instance to return.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param WCSSOT_API_Manager $manager The manager instance to return.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		return apply_filters( 'wcssot_get_api', $this->api, $this );
+	}
+
+	/**
+	 * Sets the API manager instance.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param WCSSOT_API_Manager $api The API manager instance to set.
+	 *
+	 * @return void
+	 */
+	public function set_api( $api ) {
+		/**
+		 * Filters the API manager instance to set.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param WCSSOT_API_Manager $manager The API manager instance to set.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		$this->api = apply_filters( 'wcssot_set_api', $api, $this );
 	}
 
 	/**
@@ -330,9 +434,10 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function handle_weekly_delivery_date_tracking_event() {
-		/**
-		 * @todo Implement the weekly delivery date tracking event handling.
-		 */
+		$this->sync_order_delivery_status(
+			apply_filters( 'wcssot_sync_weekly_orders_from_days_ago', 60, $this ),
+			apply_filters( 'wcssot_sync_weekly_orders_to_days_ago', 15, $this )
+		);
 	}
 
 	/**
@@ -340,14 +445,14 @@ final class WCSSOT {
 	 *
 	 * @since 2.0.0
 	 *
-	 * @param array $schedules
+	 * @param array $schedules The list of schedules already registered.
 	 *
 	 * @return array
 	 */
 	public function get_weekly_cron_schedule( $schedules ) {
 		$schedules['weekly'] = [
 			'interval' => 604800,
-			'display'  => __( 'Once Weekly', 'woocommerce-seven-senders-order-tracking' )
+			'display'  => __( 'Once Weekly', 'woocommerce-seven-senders-order-tracking' ),
 		];
 
 		return $schedules;
@@ -629,46 +734,6 @@ final class WCSSOT {
 			$order,
 			$this
 		);
-	}
-
-	/**
-	 * Returns the API manager instance.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @return WCSSOT_API_Manager The API manager instance to return.
-	 */
-	public function get_api() {
-		/**
-		 * Filters the API manager instance to return.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT_API_Manager $manager The manager instance to return.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		return apply_filters( 'wcssot_get_api', $this->api, $this );
-	}
-
-	/**
-	 * Sets the API manager instance.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @param WCSSOT_API_Manager $api The API manager instance to set.
-	 *
-	 * @return void
-	 */
-	public function set_api( $api ) {
-		/**
-		 * Filters the API manager instance to set.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT_API_Manager $manager The API manager instance to set.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		$this->api = apply_filters( 'wcssot_set_api', $api, $this );
 	}
 
 	/**
