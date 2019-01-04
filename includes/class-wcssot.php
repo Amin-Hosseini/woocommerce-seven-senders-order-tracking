@@ -346,7 +346,6 @@ final class WCSSOT {
 			return;
 		}
 		global $wpdb;
-
 		$query  = $wpdb->prepare( "
 			SELECT p.ID
 			FROM {$wpdb->posts} AS p

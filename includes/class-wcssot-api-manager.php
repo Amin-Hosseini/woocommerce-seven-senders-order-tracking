@@ -134,9 +134,50 @@ class WCSSOT_API_Manager {
 		 * @param array $params The list of parameters.
 		 * @param WCSSOT_API_Manager $manager The current class object.
 		 */
-		return apply_filters(
+		$response = apply_filters(
 			'wcssot_api_manager_get_orders',
 			$this->request( [], 'orders', 'GET', $params ),
+			$params,
+			$this
+		);
+		if ( empty( $response['body'] ) ) {
+			throw new Exception( 'Response body is empty.' );
+		}
+		$body = json_decode( $response['body'], true );
+		/**
+		 * Filters the default value to return in case no orders are fetched.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param array $orders The default value to return.
+		 * @param array $params The list of parameters.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
+		$orders = apply_filters(
+			'wcssot_api_manager_get_orders_default_value',
+			[],
+			$params,
+			$this
+		);
+		if ( empty( $body ) ) {
+			return $orders;
+		}
+		foreach ( $body as $entry ) {
+			$orders[] = $entry;
+		}
+
+		/**
+		 * Filters the list of orders from the API after fetching them.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param array $orders The list of orders from the API.
+		 * @param array $params The list of parameters.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
+		return apply_filters(
+			'wcssot_api_manager_get_orders_list',
+			$orders,
 			$params,
 			$this
 		);
@@ -174,7 +215,7 @@ class WCSSOT_API_Manager {
 		if ( $authenticate && ! self::$authenticated ) {
 			$this->authenticate();
 		}
-		$headers  = array_merge( [
+		$headers = array_merge( [
 			'Content-Type' => 'application/json'
 		], $this->get_authorization_headers() );
 		/**
@@ -716,7 +757,7 @@ class WCSSOT_API_Manager {
 				 *
 				 * @param array $carriers The list of supported carriers.
 				 * @param array $response The response from the API.
-		         * @param WCSSOT_API_Manager $manager The current class object.
+				 * @param WCSSOT_API_Manager $manager The current class object.
 				 */
 				do_action( 'wcssot_api_manager_after_get_supported_carriers', $carriers, $response, $this );
 			} catch ( Exception $exception ) {
