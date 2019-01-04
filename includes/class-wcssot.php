@@ -163,6 +163,7 @@ final class WCSSOT {
 			'wcssot_shipment_exported'      => 'wcssot_shipment_exported',
 			'wcssot_shipping_carrier'       => 'wcssot_shipping_carrier',
 			'wcssot_shipping_tracking_code' => 'wcssot_shipping_tracking_code',
+			'wcssot_delivered_at'           => 'wcssot_delivered_at',
 		], $this ) );
 		try {
 			/**
@@ -318,8 +319,8 @@ final class WCSSOT {
 	 */
 	public function handle_daily_delivery_date_tracking_event() {
 		$this->sync_order_delivery_status(
-			apply_filters( 'wcssot_sync_daily_orders_from_days_ago', 10, $this ),
-			apply_filters( 'wcssot_sync_daily_orders_to_days_ago', 1, $this )
+			apply_filters( 'wcssot_sync_daily_orders_from_days_ago', 14, $this ),
+			apply_filters( 'wcssot_sync_daily_orders_to_days_ago', 10, $this )
 		);
 	}
 
@@ -339,14 +340,16 @@ final class WCSSOT {
 		try {
 			$timezone  = new DateTimeZone( wc_timezone_string() );
 			$from_date = new DateTime( $from_days_ago . ' days ago', $timezone );
-			$to_date   = new DateTime( $to_days_ago . ' days ago', $timezone );
+			$from_date->setTime( 0, 0, 0, 0 );
+			$to_date = new DateTime( $to_days_ago . ' days ago', $timezone );
+			$to_date->setTime( 23, 59, 59, 59 );
 		} catch ( Exception $exception ) {
 			WCSSOT_Logger::error( 'Could not instantiate the date objects for the X days ago variables.' );
 
 			return;
 		}
 		global $wpdb;
-		$query  = $wpdb->prepare( "
+		$query      = $wpdb->prepare( "
 			SELECT p.ID
 			FROM {$wpdb->posts} AS p
 			WHERE p.post_type = %s
@@ -358,20 +361,25 @@ final class WCSSOT {
 			), '') IS NULL
 			AND p.post_status IN ('wc-processing', 'wc-on-hold', 'wc-completed')
 			AND p.post_date BETWEEN %s AND %s
-		", [ 'shop_order', 'wcssot_delivered_at', $from_date->format( 'c' ), $to_date->format( 'c' ) ] );
-		$orders = $wpdb->get_col( $query );
-		if ( empty( $orders ) ) {
+		", [
+			'shop_order',
+			$this->get_order_meta_key( 'wcssot_delivered_at' ),
+			$from_date->format( 'c' ),
+			$to_date->format( 'c' )
+		] );
+		$orders_ids = $wpdb->get_col( $query );
+		if ( empty( $orders_ids ) ) {
 			WCSSOT_Logger::debug( 'No orders need the delivery date synchronized.' );
 
 			return;
 		}
 		$params = [
-			'state'              => 'completed',
-			'order_date[before]' => $from_date->format( 'c' ),
-			'order_date[after]'  => $to_date->format( 'c' ),
+			'state'              => 'shipped',
+			'order_date[before]' => $to_date->format( 'c' ),
+			'order_date[after]'  => $from_date->format( 'c' ),
 		];
-		if ( count( $orders ) === 1 ) {
-			$params['order_id'] = $orders[0];
+		if ( count( $orders_ids ) === 1 ) {
+			$params['order_id'] = $orders_ids[0];
 		}
 		try {
 			$remote_orders = $this->get_api()->get_orders( $params );
@@ -380,9 +388,58 @@ final class WCSSOT {
 
 			return;
 		}
+		if ( empty( $remote_orders ) ) {
+			WCSSOT_Logger::debug( 'There are no completed orders during the specified period.' );
+
+			return;
+		}
+		$orders_ids_keys  = array_flip( $orders_ids );
+		foreach ( $remote_orders as $remote_order ) {
+			if (
+				! isset( $orders_ids_keys[ $remote_order['order_id'] ] )
+				|| empty( $remote_order['states_history'] )
+			) {
+				continue;
+			}
+			foreach ( $remote_order['states_history'] as $entry ) {
+				if ( $entry['state'] !== 'shipped' ) {
+					continue;
+				}
+				update_post_meta(
+					$remote_order['order_id'],
+					$this->get_order_meta_key( 'wcssot_delivered_at' ),
+					$entry['datetime']
+				);
+				break;
+			}
+		}
+	}
+
+	/**
+	 * Returns the order meta key requested.
+	 *
+	 * @since 0.6.0
+	 *
+	 * @param string $key The meta key requested.
+	 *
+	 * @return mixed The meta value requested.
+	 */
+	public function get_order_meta_key( $key ) {
 		/**
-		 * @todo: Match the fetched orders with the ones in the DB and add the meta values for the delivery date.
+		 * Filters the order meta key requested.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param string $association The key association requested.
+		 * @param string $key The key requested.
+		 * @param WCSSOT $wcssot The current class object.
 		 */
+		return apply_filters(
+			'wcssot_get_order_meta_key',
+			isset( $this->order_meta_keys[ $key ] ) ? $this->order_meta_keys[ $key ] : null,
+			$key,
+			$this
+		);
 	}
 
 	/**
@@ -623,33 +680,6 @@ final class WCSSOT {
 			! empty( $order->get_meta( $this->get_order_meta_key( 'wcssot_shipment_exported' ) ) ),
 			$order,
 			$refresh,
-			$this
-		);
-	}
-
-	/**
-	 * Returns the order meta key requested.
-	 *
-	 * @since 0.6.0
-	 *
-	 * @param string $key The meta key requested.
-	 *
-	 * @return mixed The meta value requested.
-	 */
-	public function get_order_meta_key( $key ) {
-		/**
-		 * Filters the order meta key requested.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param string $association The key association requested.
-		 * @param string $key The key requested.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		return apply_filters(
-			'wcssot_get_order_meta_key',
-			isset( $this->order_meta_keys[ $key ] ) ? $this->order_meta_keys[ $key ] : null,
-			$key,
 			$this
 		);
 	}
