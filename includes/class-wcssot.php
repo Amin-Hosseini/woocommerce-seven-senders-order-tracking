@@ -335,13 +335,21 @@ final class WCSSOT {
 	 * @return void
 	 */
 	public function sync_order_delivery_status( $from_days_ago, $to_days_ago ) {
+		/**
+		 * Fires before syncing the order delivery dates.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		do_action( 'wcssot_before_sync_order_delivery_status', $this );
 		$from_days_ago = absint( $from_days_ago );
 		$to_days_ago   = absint( $to_days_ago );
 		try {
 			$timezone  = new DateTimeZone( wc_timezone_string() );
 			$from_date = new DateTime( $from_days_ago . ' days ago', $timezone );
+			$to_date   = new DateTime( $to_days_ago . ' days ago', $timezone );
 			$from_date->setTime( 0, 0, 0, 0 );
-			$to_date = new DateTime( $to_days_ago . ' days ago', $timezone );
 			$to_date->setTime( 23, 59, 59, 59 );
 		} catch ( Exception $exception ) {
 			WCSSOT_Logger::error( 'Could not instantiate the date objects for the X days ago variables.' );
@@ -349,7 +357,17 @@ final class WCSSOT {
 			return;
 		}
 		global $wpdb;
-		$query      = $wpdb->prepare( "
+		/**
+		 * Filters the prepared statement for the synchronisation of the delivery dates.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param string $statement The prepared query statement.
+		 * @param array $date_objects The date objects for the before/after dates.
+		 * @param array $days_ago The number of days ago (before/after) to look for.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		$query = apply_filters( 'wcssot_sync_order_delivery_status_prepared_statement', $wpdb->prepare( "
 			SELECT p.ID
 			FROM {$wpdb->posts} AS p
 			WHERE p.post_type = %s
@@ -366,23 +384,104 @@ final class WCSSOT {
 			$this->get_order_meta_key( 'wcssot_delivered_at' ),
 			$from_date->format( 'c' ),
 			$to_date->format( 'c' )
-		] );
-		$orders_ids = $wpdb->get_col( $query );
+		] ),
+			$this->get_order_meta_key( 'wcssot_delivered_at' ),
+			[
+				$from_date,
+				$to_date,
+			],
+			[
+				$from_days_ago,
+				$to_days_ago,
+			],
+			$this
+		);
+		/**
+		 * Filters the order IDs for the synchronisation of the delivery dates.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param array $result The query result for the orders IDs.
+		 * @param array $date_objects The date objects for the before/after dates.
+		 * @param array $days_ago The number of days ago (before/after) to look for.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		$orders_ids = apply_filters(
+			'wcssot_sync_order_delivery_status_get_order_ids',
+			$wpdb->get_col( $query ),
+			$this->get_order_meta_key( 'wcssot_delivered_at' ),
+			[
+				$from_date,
+				$to_date,
+			],
+			[
+				$from_days_ago,
+				$to_days_ago,
+			],
+			$this
+		);
 		if ( empty( $orders_ids ) ) {
 			WCSSOT_Logger::debug( 'No orders need the delivery date synchronized.' );
 
 			return;
 		}
-		$params = [
-			'state'              => 'shipped',
-			'order_date[before]' => $to_date->format( 'c' ),
-			'order_date[after]'  => $from_date->format( 'c' ),
-		];
+		/**
+		 * Filters the shipment state to look for in the Seven Senders API.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param string $state The state of the shipment.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		$shipment_state = apply_filters( 'wcssot_sync_order_delivery_status_shipment_state', 'completed', $this );
+		$params         = [];
 		if ( count( $orders_ids ) === 1 ) {
 			$params['order_id'] = $orders_ids[0];
 		}
+		/**
+		 * Filters the list of request parameters to pass to the Seven Senders API request.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param array $params The list of request parameters.
+		 * @param string $shipment_state The shipment state.
+		 * @param array $date_objects The date objects for the before/after dates.
+		 * @param array $days_ago The number of days ago (before/after) to look for.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		$params = apply_filters(
+			'wcssot_sync_order_delivery_status_request_parameters',
+			$params + [
+				'state'              => $shipment_state,
+				'order_date[before]' => $to_date->format( 'c' ),
+				'order_date[after]'  => $from_date->format( 'c' ),
+			],
+			$shipment_state,
+			[
+				$from_date,
+				$to_date,
+			],
+			[
+				$from_days_ago,
+				$to_days_ago,
+			], $this
+		);
 		try {
-			$remote_orders = $this->get_api()->get_orders( $params );
+			/**
+			 * Filters the fetched remote orders from the Seven Senders API.
+			 *
+			 * @since 2.0.0
+			 *
+			 * @param array $orders The list of orders fetched.
+			 * @param array $params The list of request parameters passed.
+			 * @param WCSSOT $wcssot The current class object.
+			 */
+			$remote_orders = apply_filters(
+				'wcssot_sync_order_delivery_status_fetch_remote_orders',
+				$this->get_api()->get_orders( $params ),
+				$params,
+				$this
+			);
 		} catch ( Exception $exception ) {
 			WCSSOT_Logger::error( 'Could not fetch order from the Seven Senders API.' );
 
@@ -393,7 +492,7 @@ final class WCSSOT {
 
 			return;
 		}
-		$orders_ids_keys  = array_flip( $orders_ids );
+		$orders_ids_keys = array_flip( $orders_ids );
 		foreach ( $remote_orders as $remote_order ) {
 			if (
 				! isset( $orders_ids_keys[ $remote_order['order_id'] ] )
@@ -402,7 +501,7 @@ final class WCSSOT {
 				continue;
 			}
 			foreach ( $remote_order['states_history'] as $entry ) {
-				if ( $entry['state'] !== 'shipped' ) {
+				if ( $entry['state'] !== $shipment_state ) {
 					continue;
 				}
 				update_post_meta(
@@ -413,6 +512,14 @@ final class WCSSOT {
 				break;
 			}
 		}
+		/**
+		 * Fires after syncing the order delivery dates.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		do_action( 'wcssot_after_sync_order_delivery_status', $this );
 	}
 
 	/**
