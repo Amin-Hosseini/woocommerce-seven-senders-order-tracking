@@ -301,6 +301,10 @@ final class WCSSOT {
 			$this->get_options_manager()
 		), [ $this, 'handle_weekly_delivery_date_tracking_event' ] );
 		/**
+		 * Initialise hooks for custom order query params.
+		 */
+		add_filter( 'woocommerce_order_data_store_cpt_get_orders_query', [ $this, 'get_custom_orders_query' ], 10, 2 );
+		/**
 		 * Fires after initialising the hooks.
 		 *
 		 * @since 0.6.0
@@ -308,6 +312,41 @@ final class WCSSOT {
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		do_action( 'wcssot_after_initialise_hooks', $this );
+	}
+
+	/**
+	 * Filters the query parameters to add a custom one.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array $query The WP query parameters.
+	 * @param array $query_vars The order query variables.
+	 *
+	 * @return array
+	 */
+	public function get_custom_orders_query( $query, $query_vars ) {
+		if ( ! empty( $query_vars['wcssot_exclude_meta_key'] ) ) {
+			$query['meta_query'][] = [
+				'relation' => 'OR',
+				[
+					'key'     => $query_vars['wcssot_exclude_meta_key'],
+					'value'   => '',
+					'compare' => 'NOT EXISTS'
+				],
+				[
+					'key'     => $query_vars['wcssot_exclude_meta_key'],
+					'value'   => '',
+					'compare' => '='
+				],
+				[
+					'key'     => $query_vars['wcssot_exclude_meta_key'],
+					'value'   => null,
+					'compare' => '='
+				]
+			];
+		}
+
+		return $query;
 	}
 
 	/**
@@ -356,90 +395,37 @@ final class WCSSOT {
 
 			return;
 		}
-		global $wpdb;
-		$order_statuses_statement = '';
 		/**
-		 * Filters the list of order statuses to filter the orders by.
+		 * Filters the query parameters to fetch the orders from the database.
 		 *
 		 * @since 2.0.0
 		 *
-		 * @param array $statuses The list of statuses.
+		 * @param array $params The parameters for the query.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
-		$order_statuses = apply_filters( 'wcssot_sync_order_delivery_status_get_order_statuses', [
-			'wc-processing',
-			'wc-on-hold',
-			'wc-completed',
+		$params = apply_filters( 'wcssot_sync_order_delivery_status_query_params', [
+			'type'                    => 'shop_order',
+			'status'                  => [ 'completed', 'processing', 'on-hold' ],
+			'date_created'            => $from_date->format( 'c' ) . '...' . $to_date->format( 'c' ),
+			'wcssot_exclude_meta_key' => $this->get_order_meta_key( 'wcssot_delivered_at' ),
 		], $this );
-		if ( ! empty( $order_statuses ) ) {
-			$order_statuses_statement = "AND p.post_status IN ('" . implode( "', '", $order_statuses ) . "')";
-		}
+		/** @var WC_Order[] $local_orders */
 		/**
-		 * Filters the prepared statement for the synchronisation of the delivery dates.
+		 * Filters the fetched list of orders from the database.
 		 *
 		 * @since 2.0.0
 		 *
-		 * @param string $statement The prepared query statement.
-		 * @param array $date_objects The date objects for the before/after dates.
-		 * @param array $days_ago The number of days ago (before/after) to look for.
-		 * @param array $order_statuses The list of statuses to filter the orders by.
+		 * @param array $orders The list of orders fetched from the database.
+		 * @param array $params The parameters for the query.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
-		$query = apply_filters( 'wcssot_sync_order_delivery_status_prepared_statement', $wpdb->prepare( "
-			SELECT p.ID
-			FROM {$wpdb->posts} AS p
-			WHERE p.post_type = %s
-			AND NULLIF((
-				SELECT meta_value
-				FROM {$wpdb->postmeta} AS pm
-				WHERE pm.post_id = p.ID
-				AND pm.meta_key = %s
-			), '') IS NULL
-			" . $order_statuses_statement . "
-			AND p.post_date BETWEEN %s AND %s
-		", [
-			'shop_order',
-			$this->get_order_meta_key( 'wcssot_delivered_at' ),
-			$from_date->format( 'c' ),
-			$to_date->format( 'c' )
-		] ),
-			$this->get_order_meta_key( 'wcssot_delivered_at' ),
-			[
-				$from_date,
-				$to_date,
-			],
-			[
-				$from_days_ago,
-				$to_days_ago,
-			],
-			$order_statuses,
+		$local_orders = apply_filters(
+			'wcssot_sync_order_delivery_status_get_orders',
+			wc_get_orders( $params ),
+			$params,
 			$this
 		);
-		/**
-		 * Filters the order IDs for the synchronisation of the delivery dates.
-		 *
-		 * @since 2.0.0
-		 *
-		 * @param array $result The query result for the orders IDs.
-		 * @param array $date_objects The date objects for the before/after dates.
-		 * @param array $days_ago The number of days ago (before/after) to look for.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		$orders_ids = apply_filters(
-			'wcssot_sync_order_delivery_status_get_order_ids',
-			$wpdb->get_col( $query ),
-			$this->get_order_meta_key( 'wcssot_delivered_at' ),
-			[
-				$from_date,
-				$to_date,
-			],
-			[
-				$from_days_ago,
-				$to_days_ago,
-			],
-			$this
-		);
-		if ( empty( $orders_ids ) ) {
+		if ( empty( $local_orders ) ) {
 			WCSSOT_Logger::debug( 'No orders need the delivery date synchronized.' );
 
 			return;
@@ -454,9 +440,14 @@ final class WCSSOT {
 		 */
 		$shipment_state = apply_filters( 'wcssot_sync_order_delivery_status_shipment_state', 'completed', $this );
 		$params         = [];
-		if ( count( $orders_ids ) === 1 ) {
-			$params['order_id'] = $orders_ids[0];
+		if ( count( $local_orders ) === 1 ) {
+			$params['order_id'] = $local_orders[0]->get_order_number();
 		}
+		$params += [
+			'state'              => $shipment_state,
+			'order_date[before]' => $to_date->format( 'c' ),
+			'order_date[after]'  => $from_date->format( 'c' ),
+		];
 		/**
 		 * Filters the list of request parameters to pass to the Seven Senders API request.
 		 *
@@ -470,11 +461,7 @@ final class WCSSOT {
 		 */
 		$params = apply_filters(
 			'wcssot_sync_order_delivery_status_request_parameters',
-			$params + [
-				'state'              => $shipment_state,
-				'order_date[before]' => $to_date->format( 'c' ),
-				'order_date[after]'  => $from_date->format( 'c' ),
-			],
+			$params,
 			$shipment_state,
 			[
 				$from_date,
@@ -511,10 +498,14 @@ final class WCSSOT {
 
 			return;
 		}
-		$orders_ids_keys = array_flip( $orders_ids );
+		$orders = [];
+		foreach ( $local_orders as $local_order ) {
+			$orders[ (string) $local_order->get_order_number() ] = $local_order;
+		}
+		unset( $local_orders );
 		foreach ( $remote_orders as $remote_order ) {
 			if (
-				! isset( $orders_ids_keys[ $remote_order['order_id'] ] )
+				! isset( $orders[ $remote_order['order_id'] ] )
 				|| empty( $remote_order['states_history'] )
 			) {
 				continue;
@@ -524,7 +515,7 @@ final class WCSSOT {
 					continue;
 				}
 				update_post_meta(
-					$remote_order['order_id'],
+					$orders[ $remote_order['order_id'] ]->get_id(),
 					$this->get_order_meta_key( 'wcssot_delivered_at' ),
 					$entry['datetime']
 				);
