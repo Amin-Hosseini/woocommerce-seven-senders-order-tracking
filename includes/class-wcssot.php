@@ -357,6 +357,23 @@ final class WCSSOT {
 			return;
 		}
 		global $wpdb;
+		$order_statuses_statement = '';
+		/**
+		 * Filters the list of order statuses to filter the orders by.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param array $statuses The list of statuses.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		$order_statuses = apply_filters( 'wcssot_sync_order_delivery_status_get_order_statuses', [
+			'wc-processing',
+			'wc-on-hold',
+			'wc-completed',
+		], $this );
+		if ( ! empty( $order_statuses ) ) {
+			$order_statuses_statement = "AND p.post_status IN ('" . implode( "', '", $order_statuses ) . "')";
+		}
 		/**
 		 * Filters the prepared statement for the synchronisation of the delivery dates.
 		 *
@@ -365,6 +382,7 @@ final class WCSSOT {
 		 * @param string $statement The prepared query statement.
 		 * @param array $date_objects The date objects for the before/after dates.
 		 * @param array $days_ago The number of days ago (before/after) to look for.
+		 * @param array $order_statuses The list of statuses to filter the orders by.
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		$query = apply_filters( 'wcssot_sync_order_delivery_status_prepared_statement', $wpdb->prepare( "
@@ -377,7 +395,7 @@ final class WCSSOT {
 				WHERE pm.post_id = p.ID
 				AND pm.meta_key = %s
 			), '') IS NULL
-			AND p.post_status IN ('wc-processing', 'wc-on-hold', 'wc-completed')
+			" . $order_statuses_statement . "
 			AND p.post_date BETWEEN %s AND %s
 		", [
 			'shop_order',
@@ -394,6 +412,7 @@ final class WCSSOT {
 				$from_days_ago,
 				$to_days_ago,
 			],
+			$order_statuses,
 			$this
 		);
 		/**
