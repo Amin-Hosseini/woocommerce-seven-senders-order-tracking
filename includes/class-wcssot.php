@@ -163,6 +163,7 @@ final class WCSSOT {
 			'wcssot_shipment_exported'      => 'wcssot_shipment_exported',
 			'wcssot_shipping_carrier'       => 'wcssot_shipping_carrier',
 			'wcssot_shipping_tracking_code' => 'wcssot_shipping_tracking_code',
+			'wcssot_delivered_at'           => 'wcssot_delivered_at',
 		], $this ) );
 		try {
 			/**
@@ -270,6 +271,40 @@ final class WCSSOT {
 		add_action( 'woocommerce_order_status_completed', [ $this, 'export_shipment' ], 10, 2 );
 		add_action( 'woocommerce_email_before_order_table', [ $this, 'render_tracking_information' ], 10, 1 );
 		/**
+		 * Initialise hooks for the scheduled events.
+		 */
+		add_filter( 'cron_schedules', [ $this, 'get_weekly_cron_schedule' ], 10, 1 );
+		/**
+		 * Filters the name of the daily scheduled event hook.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param string $hook The name of the hook.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current options manager class object.
+		 */
+		add_filter( apply_filters(
+			'wcssot_daily_event_hook',
+			'wcssot_daily_delivery_date_tracking',
+			$this->get_options_manager()
+		), [ $this, 'handle_daily_delivery_date_tracking_event' ] );
+		/**
+		 * Filters the name of the weekly scheduled event hook.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param string $hook The name of the hook.
+		 * @param WCSSOT_Options_Manager $wcssot_options_manager The options manager class object.
+		 */
+		add_filter( apply_filters(
+			'wcssot_weekly_event_hook',
+			'wcssot_weekly_delivery_date_tracking',
+			$this->get_options_manager()
+		), [ $this, 'handle_weekly_delivery_date_tracking_event' ] );
+		/**
+		 * Initialise hooks for custom order query params.
+		 */
+		add_filter( 'woocommerce_order_data_store_cpt_get_orders_query', [ $this, 'get_custom_orders_query' ], 10, 2 );
+		/**
 		 * Fires after initialising the hooks.
 		 *
 		 * @since 0.6.0
@@ -280,31 +315,320 @@ final class WCSSOT {
 	}
 
 	/**
-	 * Returns the options property.
+	 * Filters the query parameters to add a custom one.
 	 *
-	 * @since 0.2.0
-	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->get_options().
-	 * @see WCSSOT_Options_Manager->get_options()
+	 * @since 2.0.0
 	 *
-	 * @return array The list of the plugin options.
+	 * @param array $query The WP query parameters.
+	 * @param array $query_vars The order query variables.
+	 *
+	 * @return array
 	 */
-	public function get_options() {
-		return $this->get_options_manager()->get_options();
+	public function get_custom_orders_query( $query, $query_vars ) {
+		if ( ! empty( $query_vars['wcssot_exclude_meta_key'] ) ) {
+			$query['meta_query'][] = [
+				'relation' => 'OR',
+				[
+					'key'     => $query_vars['wcssot_exclude_meta_key'],
+					'value'   => '',
+					'compare' => 'NOT EXISTS'
+				],
+				[
+					'key'     => $query_vars['wcssot_exclude_meta_key'],
+					'value'   => '',
+					'compare' => '='
+				],
+				[
+					'key'     => $query_vars['wcssot_exclude_meta_key'],
+					'value'   => null,
+					'compare' => '='
+				]
+			];
+		}
+
+		return $query;
 	}
 
 	/**
-	 * Sets the options property.
+	 * Handles the Daily Delivery Date Tracking event.
 	 *
-	 * @since 0.2.0
-	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->set_options().
-	 * @see WCSSOT_Options_Manager->set_options()
-	 *
-	 * @param array $options The options list to set.
+	 * @since 2.0.0
 	 *
 	 * @return void
 	 */
-	public function set_options( $options ) {
-		$this->get_options_manager()->set_options( $options );
+	public function handle_daily_delivery_date_tracking_event() {
+		$this->sync_order_delivery_status(
+			apply_filters( 'wcssot_sync_daily_orders_from_days_ago', 14, $this ),
+			apply_filters( 'wcssot_sync_daily_orders_to_days_ago', 10, $this )
+		);
+	}
+
+	/**
+	 * Syncs the orders' delivery status using the Seven Senders API.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param int $from_days_ago The amount of days ago for the orders to start searching from.
+	 * @param int $to_days_ago The amount of days ago for the orders to start searching to.
+	 *
+	 * @return void
+	 */
+	public function sync_order_delivery_status( $from_days_ago, $to_days_ago ) {
+		/**
+		 * Fires before syncing the order delivery dates.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		do_action( 'wcssot_before_sync_order_delivery_status', $this );
+		$from_days_ago = absint( $from_days_ago );
+		$to_days_ago   = absint( $to_days_ago );
+		try {
+			$timezone  = new DateTimeZone( wc_timezone_string() );
+			$from_date = new DateTime( $from_days_ago . ' days ago', $timezone );
+			$to_date   = new DateTime( $to_days_ago . ' days ago', $timezone );
+			$from_date->setTime( 0, 0, 0, 0 );
+			$to_date->setTime( 23, 59, 59, 59 );
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not instantiate the date objects for the X days ago variables.' );
+
+			return;
+		}
+		/**
+		 * Filters the query parameters to fetch the orders from the database.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param array $params The parameters for the query.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		$params = apply_filters( 'wcssot_sync_order_delivery_status_query_params', [
+			'type'                    => 'shop_order',
+			'status'                  => [ 'completed', 'processing', 'on-hold' ],
+			'date_created'            => $from_date->format( 'c' ) . '...' . $to_date->format( 'c' ),
+			'wcssot_exclude_meta_key' => $this->get_order_meta_key( 'wcssot_delivered_at' ),
+		], $this );
+		/** @var WC_Order[] $local_orders */
+		/**
+		 * Filters the fetched list of orders from the database.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param array $orders The list of orders fetched from the database.
+		 * @param array $params The parameters for the query.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		$local_orders = apply_filters(
+			'wcssot_sync_order_delivery_status_get_orders',
+			wc_get_orders( $params ),
+			$params,
+			$this
+		);
+		if ( empty( $local_orders ) ) {
+			WCSSOT_Logger::debug( 'No orders need the delivery date synchronized.' );
+
+			return;
+		}
+		/**
+		 * Filters the shipment state to look for in the Seven Senders API.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param string $state The state of the shipment.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		$shipment_state = apply_filters( 'wcssot_sync_order_delivery_status_shipment_state', 'completed', $this );
+		$params         = [];
+		if ( count( $local_orders ) === 1 ) {
+			$params['order_id'] = $local_orders[0]->get_order_number();
+		}
+		$params += [
+			'state'              => $shipment_state,
+			'order_date[before]' => $to_date->format( 'c' ),
+			'order_date[after]'  => $from_date->format( 'c' ),
+		];
+		/**
+		 * Filters the list of request parameters to pass to the Seven Senders API request.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param array $params The list of request parameters.
+		 * @param string $shipment_state The shipment state.
+		 * @param array $date_objects The date objects for the before/after dates.
+		 * @param array $days_ago The number of days ago (before/after) to look for.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		$params = apply_filters(
+			'wcssot_sync_order_delivery_status_request_parameters',
+			$params,
+			$shipment_state,
+			[
+				$from_date,
+				$to_date,
+			],
+			[
+				$from_days_ago,
+				$to_days_ago,
+			], $this
+		);
+		try {
+			/**
+			 * Filters the fetched remote orders from the Seven Senders API.
+			 *
+			 * @since 2.0.0
+			 *
+			 * @param array $orders The list of orders fetched.
+			 * @param array $params The list of request parameters passed.
+			 * @param WCSSOT $wcssot The current class object.
+			 */
+			$remote_orders = apply_filters(
+				'wcssot_sync_order_delivery_status_fetch_remote_orders',
+				$this->get_api()->get_orders( $params ),
+				$params,
+				$this
+			);
+		} catch ( Exception $exception ) {
+			WCSSOT_Logger::error( 'Could not fetch order from the Seven Senders API.' );
+
+			return;
+		}
+		if ( empty( $remote_orders ) ) {
+			WCSSOT_Logger::debug( 'There are no completed orders during the specified period.' );
+
+			return;
+		}
+		$orders = [];
+		foreach ( $local_orders as $local_order ) {
+			$orders[ (string) $local_order->get_order_number() ] = $local_order;
+		}
+		unset( $local_orders );
+		foreach ( $remote_orders as $remote_order ) {
+			if (
+				! isset( $orders[ $remote_order['order_id'] ] )
+				|| empty( $remote_order['states_history'] )
+			) {
+				continue;
+			}
+			foreach ( $remote_order['states_history'] as $entry ) {
+				if ( $entry['state'] !== $shipment_state ) {
+					continue;
+				}
+				update_post_meta(
+					$orders[ $remote_order['order_id'] ]->get_id(),
+					$this->get_order_meta_key( 'wcssot_delivered_at' ),
+					$entry['datetime']
+				);
+				break;
+			}
+		}
+		/**
+		 * Fires after syncing the order delivery dates.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		do_action( 'wcssot_after_sync_order_delivery_status', $this );
+	}
+
+	/**
+	 * Returns the order meta key requested.
+	 *
+	 * @since 0.6.0
+	 *
+	 * @param string $key The meta key requested.
+	 *
+	 * @return mixed The meta value requested.
+	 */
+	public function get_order_meta_key( $key ) {
+		/**
+		 * Filters the order meta key requested.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param string $association The key association requested.
+		 * @param string $key The key requested.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		return apply_filters(
+			'wcssot_get_order_meta_key',
+			isset( $this->order_meta_keys[ $key ] ) ? $this->order_meta_keys[ $key ] : null,
+			$key,
+			$this
+		);
+	}
+
+	/**
+	 * Returns the API manager instance.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @return WCSSOT_API_Manager The API manager instance to return.
+	 */
+	public function get_api() {
+		/**
+		 * Filters the API manager instance to return.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param WCSSOT_API_Manager $manager The manager instance to return.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		return apply_filters( 'wcssot_get_api', $this->api, $this );
+	}
+
+	/**
+	 * Sets the API manager instance.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param WCSSOT_API_Manager $api The API manager instance to set.
+	 *
+	 * @return void
+	 */
+	public function set_api( $api ) {
+		/**
+		 * Filters the API manager instance to set.
+		 *
+		 * @since 0.6.0
+		 *
+		 * @param WCSSOT_API_Manager $manager The API manager instance to set.
+		 * @param WCSSOT $wcssot The current class object.
+		 */
+		$this->api = apply_filters( 'wcssot_set_api', $api, $this );
+	}
+
+	/**
+	 * Handles the Weekly Delivery Date Tracking event.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	public function handle_weekly_delivery_date_tracking_event() {
+		$this->sync_order_delivery_status(
+			apply_filters( 'wcssot_sync_weekly_orders_from_days_ago', 60, $this ),
+			apply_filters( 'wcssot_sync_weekly_orders_to_days_ago', 15, $this )
+		);
+	}
+
+	/**
+	 * Registers the weekly schedule for the scheduled events.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array $schedules The list of schedules already registered.
+	 *
+	 * @return array
+	 */
+	public function get_weekly_cron_schedule( $schedules ) {
+		$schedules['weekly'] = [
+			'interval' => 604800,
+			'display'  => __( 'Once Weekly', 'woocommerce-seven-senders-order-tracking' ),
+		];
+
+		return $schedules;
 	}
 
 	/**
@@ -450,33 +774,6 @@ final class WCSSOT {
 	}
 
 	/**
-	 * Returns the order meta key requested.
-	 *
-	 * @since 0.6.0
-	 *
-	 * @param string $key The meta key requested.
-	 *
-	 * @return mixed The meta value requested.
-	 */
-	public function get_order_meta_key( $key ) {
-		/**
-		 * Filters the order meta key requested.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param string $association The key association requested.
-		 * @param string $key The key requested.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		return apply_filters(
-			'wcssot_get_order_meta_key',
-			isset( $this->order_meta_keys[ $key ] ) ? $this->order_meta_keys[ $key ] : null,
-			$key,
-			$this
-		);
-	}
-
-	/**
 	 * Returns the order tracking link.
 	 *
 	 * @since 0.5.0
@@ -555,180 +852,6 @@ final class WCSSOT {
 			$order,
 			$this
 		);
-	}
-
-	/**
-	 * Returns the API manager instance.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @return WCSSOT_API_Manager The API manager instance to return.
-	 */
-	public function get_api() {
-		/**
-		 * Filters the API manager instance to return.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT_API_Manager $manager The manager instance to return.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		return apply_filters( 'wcssot_get_api', $this->api, $this );
-	}
-
-	/**
-	 * Sets the API manager instance.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @param WCSSOT_API_Manager $api The API manager instance to set.
-	 *
-	 * @return void
-	 */
-	public function set_api( $api ) {
-		/**
-		 * Filters the API manager instance to set.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param WCSSOT_API_Manager $manager The API manager instance to set.
-		 * @param WCSSOT $wcssot The current class object.
-		 */
-		$this->api = apply_filters( 'wcssot_set_api', $api, $this );
-	}
-
-	/**
-	 * Adds the administration menu page.
-	 *
-	 * @since 0.0.1
-	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->add_admin_menu().
-	 * @see WCSSOT_Options_Manager->add_admin_menu()
-	 *
-	 * @return void
-	 */
-	public function add_admin_menu() {
-		$this->get_options_manager()->add_admin_menu();
-	}
-
-	/**
-	 * Renders the admin settings page.
-	 *
-	 * @since 0.0.1
-	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->render_admin_page().
-	 * @see WCSSOT_Options_Manager->render_admin_page()
-	 *
-	 * @return void
-	 */
-	public function render_admin_page() {
-		$this->get_options_manager()->render_admin_page();
-	}
-
-	/**
-	 * Registers the administration settings.
-	 *
-	 * @since 0.0.1
-	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->register_admin_settings().
-	 * @see WCSSOT_Options_Manager->register_admin_settings()
-	 *
-	 * @return void
-	 */
-	public function register_admin_settings() {
-		$this->get_options_manager()->register_admin_settings();
-	}
-
-	/**
-	 * Renders the API Credentials section.
-	 *
-	 * @since 0.0.1
-	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->render_admin_api_credentials_section().
-	 * @see WCSSOT_Options_Manager->render_admin_api_credentials_section()
-	 *
-	 * @return void
-	 */
-	public function render_admin_api_credentials_section() {
-		$this->get_options_manager()->render_admin_api_credentials_section();
-	}
-
-	/**
-	 * Renders the Tracking Page section.
-	 *
-	 * @since 0.0.1
-	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->render_admin_tracking_page_section().
-	 * @see WCSSOT_Options_Manager->render_admin_tracking_page_section()
-	 *
-	 * @return void
-	 */
-	public function render_admin_tracking_page_section() {
-		$this->get_options_manager()->render_admin_tracking_page_section();
-	}
-
-	/**
-	 * Renders the API Base URL setting field.
-	 *
-	 * @since 0.0.1
-	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->render_admin_api_base_url_field().
-	 * @see WCSSOT_Options_Manager->render_admin_api_base_url_field()
-	 *
-	 * @return void
-	 */
-	public function render_admin_api_base_url_field() {
-		$this->get_options_manager()->render_admin_api_base_url_field();
-	}
-
-	/**
-	 * Renders the API Access Key setting field.
-	 *
-	 * @since 0.0.1
-	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->render_admin_api_access_key_field().
-	 * @see WCSSOT_Options_Manager->render_admin_api_access_key_field()
-	 *
-	 * @return void
-	 */
-	public function render_admin_api_access_key_field() {
-		$this->get_options_manager()->render_admin_api_access_key_field();
-	}
-
-	/**
-	 * Renders the Tracking Page Base URL setting field.
-	 *
-	 * @since 0.0.1
-	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->render_admin_tracking_page_base_url_field().
-	 * @see WCSSOT_Options_Manager->render_admin_tracking_page_base_url_field()
-	 *
-	 * @return void
-	 */
-	public function render_admin_tracking_page_base_url_field() {
-		$this->get_options_manager()->render_admin_tracking_page_base_url_field();
-	}
-
-	/**
-	 * Enqueues all necessary assets for the administration panel plugin page.
-	 *
-	 * @since 0.0.1
-	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->enqueue_admin_scripts().
-	 * @see WCSSOT_Options_Manager->enqueue_admin_scripts()
-	 *
-	 * @param string $hook The hook that calls the enqueueing process.
-	 *
-	 * @return void
-	 */
-	public function enqueue_admin_scripts( $hook = '' ) {
-		$this->get_options_manager()->enqueue_admin_scripts( $hook );
-	}
-
-	/**
-	 * Sanitize the administration settings page.
-	 *
-	 * @since 0.0.1
-	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->sanitize_admin_settings().
-	 * @see WCSSOT_Options_Manager->sanitize_admin_settings()
-	 *
-	 * @param array $input The input list to sanitise.
-	 *
-	 * @return array The sanitised input list.
-	 */
-	public function sanitize_admin_settings( $input = [] ) {
-		return $this->get_options_manager()->sanitize_admin_settings( $input );
 	}
 
 	/**
@@ -1128,50 +1251,6 @@ final class WCSSOT {
 		 * @param WCSSOT $wcssot The current class object.
 		 */
 		return apply_filters( 'wcssot_get_recipient_address', $address, $order, $this );
-	}
-
-	/**
-	 * Returns the specified option key from the options property.
-	 *
-	 * @since 0.2.0
-	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->get_option().
-	 * @see WCSSOT_Options_Manager->get_option()
-	 *
-	 * @param string $option The option key to get.
-	 * @param mixed $default The default value to return in case the option does not exist.
-	 *
-	 * @return mixed The option value requested.
-	 */
-	public function get_option( $option, $default = null ) {
-		return $this->get_options_manager()->get_option( $option, $default );
-	}
-
-	/**
-	 * Returns the options required property.
-	 *
-	 * @since 0.2.0
-	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->get_options_required().
-	 * @see WCSSOT_Options_Manager->get_options_required()
-	 *
-	 * @return array The list of options required.
-	 */
-	public function get_options_required() {
-		return $this->get_options_manager()->get_options_required();
-	}
-
-	/**
-	 * Sets the options required property.
-	 *
-	 * @since 0.2.0
-	 * @deprecated 1.2.0 Use WCSSOT_Options_Manager->set_options_required().
-	 * @see WCSSOT_Options_Manager->set_options_required()
-	 *
-	 * @param array $options_required The list of options required to set.
-	 *
-	 * @return void
-	 */
-	public function set_options_required( $options_required ) {
-		$this->get_options_manager()->set_options_required( $options_required );
 	}
 
 	/**
