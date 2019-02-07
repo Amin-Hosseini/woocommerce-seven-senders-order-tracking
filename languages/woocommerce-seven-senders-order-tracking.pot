@@ -1,0 +1,178 @@
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: WooCommerce Seven Senders Order Tracking\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-02-06 16:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: \n"
+"Language: \n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Loco https://localise.biz/\n"
+"X-Loco-Version: 2.2.0; wp-4.9.8"
+
+#: includes/class-wcssot-options-manager.php:359
+msgid " functionality to your WooCommerce shop."
+msgstr ""
+
+#: includes/class-wcssot.php:675
+#, php-format
+msgid ""
+"<a href=\"%1$s\" target=\"_blank\">Click here to see the status of your %2$s "
+"shipment.</a>"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:444
+msgid "API Access Key"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:434
+msgid "API Base URL"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:428
+msgid "API Credentials"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:948
+msgid "API Endpoint"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:484
+msgid "Daily Tracking Enabled"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:478
+msgid "Delivery Date Tracking"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:897
+msgid "Enter the Seven Senders Tracking Page settings."
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:852
+#, php-format
+msgid ""
+"Enter your assigned API credentials <a href=\"%s\" target=\"_blank\">from "
+"the Seven Senders dashboard</a>."
+msgstr ""
+
+#. URI of the plugin
+msgid ""
+"https://github.com/hypeventures/woocommerce-seven-senders-order-tracking"
+msgstr ""
+
+#. Author URI of the plugin
+msgid "https://www.invinciblebrands.com/"
+msgstr ""
+
+#. Description of the plugin
+msgid ""
+"Interacts with the Seven Senders API to provide order tracking functionality "
+"to your WooCommerce shop."
+msgstr ""
+
+#. Author of the plugin
+msgid "Kostas Stergiannis <kostas@invinciblebrands.com>"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:1281
+msgid "Loading... Please wait."
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:1172
+#: includes/class-wcssot-options-manager.php:1228
+#, php-format
+msgid "Next event on %s."
+msgstr ""
+
+#: includes/class-wcssot.php:628
+msgid "Once Weekly"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:530
+msgid "One of the form fields is missing!"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:1082
+msgid "Order Number"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:316
+msgid "Order Tracking"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:379
+msgid "Save Settings"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:315
+msgid "Seven Senders Order Tracking"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:563
+#: includes/class-wcssot-options-manager.php:614
+#, php-format
+msgid "The field \"%s\" contains an invalid URL."
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:586
+#, php-format
+msgid "The field \"%s\" is invalid."
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:639
+#: includes/class-wcssot-options-manager.php:664
+#, php-format
+msgid "The field \"%s\" is not a valid boolean value."
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:783
+msgid "The settings have been saved successfully!"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:933
+msgid "The Seven Senders API base URL..."
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:1066
+msgid "The tracking page base URL..."
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:458
+msgid "Tracking Page"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:464
+msgid "Tracking Page Base URL"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:1115
+msgid ""
+"Use this section to set up the delivery date tracking feature. Use the "
+"checkboxes to \n"
+"\t\t\t\tenable/disable the scheduled events. The state of the checkboxes "
+"reflect the state of the events \n"
+"\t\t\t\tas well."
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:494
+msgid "Weekly Tracking Enabled"
+msgstr ""
+
+#. Name of the plugin
+msgid "WooCommerce Seven Senders Order Tracking"
+msgstr ""
+
+#: includes/class-wcssot-options-manager.php:1019
+msgid "Your provided access key..."
+msgstr ""
+
+#: includes/class-wcssot.php:687
+#, php-format
+msgid "Your tracking code is: %s"
+msgstr ""
