@@ -19,7 +19,7 @@ Clone the Github repository:
 `git clone git@github.com:hypeventures/woocommerce-seven-senders-order-tracking.git`
 
 ## How to Use
-From your WordPress administration panel go to `Plugins > Installed Plugins` and scroll down until you find `WooCommerce Seven Senders Order Tracking`. You will need to activate it first, then click on the `Order Tracking` sub-menu to configure it. `In order to use the plugin in all its capacity, you will have to adhere to the following workflow:
+From your WordPress administration panel go to `Plugins > Installed Plugins` and scroll down until you find `WooCommerce Seven Senders Order Tracking`. You will need to activate it first, then click on the `Order Tracking` sub-menu to configure it. In order to use the plugin in all its capacity, you will have to adhere to the following workflow:
 
 1. When an order is placed by your customer, and its status changes to `Processing`, the plugin will export the order data to the Seven Senders API and set the remote order state to `in_preparation`.
 2. Before you change the order status to `Completed`, you will have to set the order meta keys `wcssot_shipping_carrier` with a supported shipping carrier identifier (e.g.: `dhl`, `ups`, `dpd`, etc.) and `wcssot_shipping_tracking_code` with the corresponding tracking code provided by your shipping carrier.
@@ -39,7 +39,7 @@ The access key of your Seven Senders account. You can find it at [your Seven Sen
 The base URL of your Seven Senders account. It's something like `https://[COMPANY].tracking.7senders.com/#/order`.
 
 ## License
-Copyright (C) 2018 Invincible Brands GmbH
+Copyright (C) 2018-2019 Invincible Brands GmbH
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

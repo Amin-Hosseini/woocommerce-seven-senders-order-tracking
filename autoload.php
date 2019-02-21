@@ -2,7 +2,7 @@
 /**
  * PSR-4 autoloader implementation from https://www.php-fig.org/psr/psr-4/examples/.
  *
- * Copyright (C) 2018 Invincible Brands GmbH
+ * Copyright (C) 2018-2019 Invincible Brands GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
