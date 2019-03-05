@@ -33,7 +33,7 @@ The planned pickup time for the shipment is calculated as the next business day 
 The base URL of the Seven Sender API. Default value is `https://api.sevensenders.com/v2`.
 
 #### API Access Key
-The access key of your Seven Senders account. You can find it at [your Seven Senders dashboard](https://sendwise.sevensenders.com/settings/shop/integrations).
+The API access key of your Seven Senders account.
 
 #### Tracking Page Base URL
 The base URL of your Seven Senders account. It's something like `https://[COMPANY].tracking.7senders.com/#/order`.

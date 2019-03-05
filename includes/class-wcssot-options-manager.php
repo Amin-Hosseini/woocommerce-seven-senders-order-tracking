@@ -849,18 +849,11 @@ class WCSSOT_Options_Manager {
 		 */
 		do_action( 'wcssot_before_render_admin_api_credentials_section', $this->wcssot, $this );
 		WCSSOT_Logger::debug( "Rendering the 'API Credentials' section subtitle." );
-		$text = __(
-			'Enter your assigned API credentials <a href="%s" target="_blank">from the Seven Senders dashboard</a>.',
-			'woocommerce-seven-senders-order-tracking'
-		);
-		$text = wp_kses( $text, [
-			'a' => [
-				'href'   => [],
-				'target' => [],
-			]
-		] );
 		?>
-        <p><?php printf( $text, 'https://sendwise.sevensenders.com/settings/shop/integrations' ); ?></p>
+        <p><?php esc_html_e(
+          'Enter your assigned API credentials.',
+          'woocommerce-seven-senders-order-tracking'
+        ); ?></p>
 		<?php
 		/**
 		 * Fires after rendering the API Credentials section.
