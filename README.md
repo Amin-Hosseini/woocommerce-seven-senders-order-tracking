@@ -26,17 +26,20 @@ From your WordPress administration panel go to `Plugins > Installed Plugins` and
 3. When the order status changes to `Completed` and the meta keys above are set and valid, the shipment will be exported and the remote order state will change to `in_production`.
 
 ### Notice
-The planned pickup time for the shipment is calculated as the next business day.
+The planned pickup time for the shipment is calculated as the next business day at 12:00.
 
 ## Configuration
 #### API Base URL
 The base URL of the Seven Sender API. Default value is `https://api.sevensenders.com/v2`.
 
 #### API Access Key
-The access key of your Seven Senders account. You can find it at [your Seven Senders dashboard](https://sendwise.sevensenders.com/settings/shop/integrations).
+The API access key of your Seven Senders account.
 
 #### Tracking Page Base URL
 The base URL of your Seven Senders account. It's something like `https://[COMPANY].tracking.7senders.com/#/order`.
+
+## Requirements
+The plugin requires that WooCommerce 3.5.0 or later is installed, otherwise it will exit silently.
 
 ## License
 Copyright (C) 2018-2019 Invincible Brands GmbH

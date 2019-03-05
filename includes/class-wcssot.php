@@ -358,7 +358,23 @@ final class WCSSOT {
 	 */
 	public function handle_daily_delivery_date_tracking_event() {
 		$this->sync_order_delivery_status(
+            /**
+             * Filters the number of days to sync order daily from.
+             *
+             * @since 2.0.0
+             *
+             * @param int $days The number of days to sync order daily from.
+             * @param WCSSOT $wcssot The current class object.
+             */
 			apply_filters( 'wcssot_sync_daily_orders_from_days_ago', 14, $this ),
+            /**
+             * Filters the number of days to sync order daily to.
+             *
+             * @since 2.0.0
+             *
+             * @param int $days The number of days to sync order daily to.
+             * @param WCSSOT $wcssot The current class object.
+             */
 			apply_filters( 'wcssot_sync_daily_orders_to_days_ago', 10, $this )
 		);
 	}
@@ -608,7 +624,23 @@ final class WCSSOT {
 	 */
 	public function handle_weekly_delivery_date_tracking_event() {
 		$this->sync_order_delivery_status(
+            /**
+             * Filters the number of days to sync order weekly from.
+             *
+             * @since 2.0.0
+             *
+             * @param int $days The number of days to syn orders weekly from.
+             * @param WCSSOT $wcssot The current class object.
+             */
 			apply_filters( 'wcssot_sync_weekly_orders_from_days_ago', 60, $this ),
+            /**
+             * Filters the number of days to sync order weekly to.
+             *
+             * @since 2.0.0
+             *
+             * @param int $days The number of days to syn orders weekly to.
+             * @param WCSSOT $wcssot The current class object.
+             */
 			apply_filters( 'wcssot_sync_weekly_orders_to_days_ago', 15, $this )
 		);
 	}
