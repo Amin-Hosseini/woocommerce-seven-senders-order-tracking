@@ -165,6 +165,15 @@ class WCSSOT_API_Manager {
 		foreach ( $body as $entry ) {
 			$orders[] = $entry;
 		}
+		/**
+		 * Fires after getting the orders from the API.
+		 *
+		 * @since 2.0.2
+		 *
+		 * @param array $params The list of parameters to fetch the orders by.
+		 * @param WCSSOT_API_Manager $manager The current class object.
+		 */
+		do_action( 'wcssot_api_manager_after_get_orders', $params, $this );
 
 		/**
 		 * Filters the list of orders from the API after fetching them.
