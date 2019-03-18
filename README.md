@@ -36,7 +36,7 @@ The base URL of the Seven Sender API. Default value is `https://api.sevensenders
 The API access key of your Seven Senders account.
 
 #### Tracking Page Base URL
-The base URL of your Seven Senders account. It's something like `https://[COMPANY].tracking.7senders.com/#/order`.
+The base URL of your Seven Senders account. It's something like `https://trackingpages.com/[SENDWISE-TRACKINGPAGE-HASH]/<orderId>`.
 
 ## Requirements
 The plugin requires that WooCommerce 3.5.0 or later is installed, otherwise it will exit silently.
