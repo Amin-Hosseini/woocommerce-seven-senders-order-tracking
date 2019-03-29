@@ -57,7 +57,8 @@ Lets you enable/disable the daily delivery date tracking functionality. The stat
 Lets you enable/disable the weekly delivery date tracking functionality. The state of the checkbox reflect the state of the event.
 
 ## Requirements
-The plugin requires that WooCommerce 3.5.0 or later is installed, otherwise it will exit silently.
+* An active [Seven Senders](https://www.sevensenders.com/) account.
+* WooCommerce 3.5.0 or later, otherwise it will exit silently if active.
 
 ## License
 Copyright (C) 2018-2019 Invincible Brands GmbH
