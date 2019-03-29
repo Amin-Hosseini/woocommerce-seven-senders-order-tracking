@@ -63,6 +63,9 @@ You can find detailed documentation regarding all aspects of the plugin in the [
 * An active [Seven Senders](https://www.sevensenders.com/) account.
 * WooCommerce 3.5.0 or later, otherwise it will exit silently if active.
 
+## Questions or need help? 
+Please [create an issue](issues/new) for any technical problems you face or contact us via `github[at]invinciblebrands.com` with any questions and we will try to get back to you as soon as possible.
+
 ## License
 Copyright (C) 2018-2019 Invincible Brands GmbH
 
