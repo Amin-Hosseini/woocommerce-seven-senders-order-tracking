@@ -83,6 +83,19 @@ class WCSSOT_Logger {
 		if ( ! empty( $backtrace[1] ) ) {
 			$suffix = ' (' . $backtrace[1]['file'] . ':' . $backtrace[1]['line'] . ')';
 		}
+        /**
+         * Allows 3rd parties to do their own logging actions.
+         *
+         * @since 2.0.3
+         *
+         * @param string $type       The type of logging.
+         * @param string $message    The message to log.
+         * @param string $suffix     File & Line info if available.
+         * @param array  $backtrace  Array with full debug backtrace.
+         *
+         * @return void
+         */
+		do_action('wcssot_logger_log_action', $type, $message, $suffix, $backtrace);
 		/**
 		 * Filters whether logging is enabled.
 		 *
