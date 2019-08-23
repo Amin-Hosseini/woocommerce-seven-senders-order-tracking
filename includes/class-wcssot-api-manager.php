@@ -253,6 +253,23 @@ class WCSSOT_API_Manager {
 		WCSSOT_Logger::debug( 'Sent request to the "' . $endpoint . '" endpoint.' );
 		if ( is_wp_error( $response ) ) {
 			WCSSOT_Logger::error( 'The request to the "' . $endpoint . '" endpoint resulted in an error.' );
+            /**
+             * Allows 3rd parties to analyse api wp response errors.
+             *
+             * @param \WP_Error $response  WP error object aka request response.
+             * @param array $data          The list of parameters to request.
+             * @param string $endpoint     The endpoint to use for the request.
+             * @param string $method       The HTTP method to use for the request.
+             * @param array $params        The list of parameters to add.
+             */
+			do_action(
+			    'wcssot_api_manager_request_wp_error_action',
+                $response,
+                $data,
+                $endpoint,
+                $method,
+                $params
+            );
 			throw new Exception( $response->get_error_message() );
 		}
 		$response_code = wp_remote_retrieve_response_code( $response );
@@ -325,6 +342,25 @@ class WCSSOT_API_Manager {
 		)
 		) {
 			WCSSOT_Logger::error( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
+            /**
+             * Allows 3rd parties to analyse api http response errors.
+             *
+             * @param int $code         The response code.
+             * @param array $response   The response from the API.
+             * @param array $data       The list of parameters to request.
+             * @param string $endpoint  The endpoint to use for the request.
+             * @param string $method    The HTTP method to use for the request.
+             * @param array $params     The list of parameters to add.
+             */
+            do_action(
+                'wcssot_api_manager_request_http_error_action',
+                $response_code,
+                $response,
+                $data,
+                $endpoint,
+                $method,
+                $params
+            );
 			throw new Exception( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
 		}
 		/**
