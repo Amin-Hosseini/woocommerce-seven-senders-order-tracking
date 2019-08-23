@@ -256,6 +256,8 @@ class WCSSOT_API_Manager {
             /**
              * Allows 3rd parties to analyse api wp response errors.
              *
+             * @since 2.0.3
+             *
              * @param \WP_Error $response  WP error object aka request response.
              * @param array $data          The list of parameters to request.
              * @param string $endpoint     The endpoint to use for the request.
@@ -344,6 +346,8 @@ class WCSSOT_API_Manager {
 			WCSSOT_Logger::error( 'The API responded with an invalid HTTP code "' . $response_code . '".' );
             /**
              * Allows 3rd parties to analyse api http response errors.
+             *
+             * @since 2.0.3
              *
              * @param int $code         The response code.
              * @param array $response   The response from the API.
