@@ -95,7 +95,7 @@ class WCSSOT_Logger {
          *
          * @return void
          */
-		do_action('wcssot_logger_log_action', $type, $message, $suffix, $backtrace);
+		do_action( 'wcssot_logger_log_action', $type, $message, $suffix, $backtrace );
 		/**
 		 * Filters whether logging is enabled.
 		 *
