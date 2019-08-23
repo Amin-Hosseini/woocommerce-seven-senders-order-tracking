@@ -4,7 +4,7 @@
  * Plugin URI:   https://github.com/hypeventures/woocommerce-seven-senders-order-tracking
  * Description:  Interacts with the Seven Senders API to provide order tracking functionality to your WooCommerce shop.
  * Version:      2.0.2
- * Author:       Kostas Stergiannis <kostas@invinciblebrands.com>
+ * Author:       Invincible Brands <dev@invinciblebrands.com>
  * Author URI:   https://www.invinciblebrands.com/
  * License:      GPL3
  * License URI:  https://www.gnu.org/licenses/gpl-3.0.html
