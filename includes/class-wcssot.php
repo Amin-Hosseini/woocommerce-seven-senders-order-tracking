@@ -960,9 +960,6 @@ final class WCSSOT {
 			return false;
 		}
 		update_post_meta( $order_id, $this->get_order_meta_key( 'wcssot_shipment_exported' ), true );
-		if ( ! $this->get_api()->set_order_state( $order, 'in_preparation' ) ) {
-			return false;
-		}
 		/**
 		 * Fires after exporting the order shipment.
 		 *
