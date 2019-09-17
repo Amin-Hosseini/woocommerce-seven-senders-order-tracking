@@ -1045,7 +1045,7 @@ final class WCSSOT {
 			$this->get_order_meta_key( 'wcssot_order_tracking_link' ),
 			$this->get_tracking_link( $order->get_order_number() )
 		);
-		if ( ! $this->get_api()->set_order_state( $order, 'in_production' ) ) {
+		if ( ! $this->get_api()->set_order_state( $order, 'in_preparation' ) ) {
 			return false;
 		}
 		/**
