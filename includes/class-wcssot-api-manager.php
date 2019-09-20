@@ -227,32 +227,36 @@ class WCSSOT_API_Manager {
 		$headers = array_merge( [
 			'Content-Type' => 'application/json'
 		], $this->get_authorization_headers() );
-		/**
-		 * Filters the list of request parameters.
-		 *
-		 * @since 0.6.0
-		 *
-		 * @param array $args The list of parameters.
-		 * @param array $data The list of parameters to request.
-		 * @param string $endpoint The endpoint to use for the request.
-		 * @param string $method The HTTP method to use for the request.
-		 * @param array $params The list of parameters to add.
-		 * @param bool $authenticate Whether to authenticate before requesting.
-		 * @param WCSSOT_API_Manager $manager The current class object.
-		 */
-		$response = wp_safe_remote_request( $this->get_endpoint_url( $endpoint, $params ), apply_filters(
-			'wcssot_api_manager_request_arguments',
-			[
-				'method'     => $method,
-				'headers'    => $headers,
-				'body'       => ! empty( $data ) ? json_encode( $data ) : '',
-				'timeout'    => 10,
-				'blocking'   => true,
-				'user-agent' => 'WooCommerce ' . WC()->version . '; ' . get_site_url(),
-			], $data, $endpoint, $method, $params, $authenticate, $this ) );
-		WCSSOT_Logger::debug( 'Sent request to the "' . $endpoint . '" endpoint.' );
-		if ( is_wp_error( $response ) ) {
-			WCSSOT_Logger::error( 'The request to the "' . $endpoint . '" endpoint resulted in an error.' );
+		$tries = 0;
+		do {
+            /**
+             * Filters the list of request parameters.
+             *
+             * @since 0.6.0
+             *
+             * @param array $args The list of parameters.
+             * @param array $data The list of parameters to request.
+             * @param string $endpoint The endpoint to use for the request.
+             * @param string $method The HTTP method to use for the request.
+             * @param array $params The list of parameters to add.
+             * @param bool $authenticate Whether to authenticate before requesting.
+             * @param WCSSOT_API_Manager $manager The current class object.
+             */
+            $response = wp_safe_remote_request( $this->get_endpoint_url( $endpoint, $params ), apply_filters(
+                'wcssot_api_manager_request_arguments',
+                [
+                    'method'     => $method,
+                    'headers'    => $headers,
+                    'body'       => ! empty( $data ) ? json_encode( $data ) : '',
+                    'timeout'    => 10,
+                    'blocking'   => true,
+                    'user-agent' => 'WooCommerce ' . WC()->version . '; ' . get_site_url(),
+                ], $data, $endpoint, $method, $params, $authenticate, $this ) );
+            WCSSOT_Logger::debug( 'Sent request to the "' . $endpoint . '" endpoint.' );
+            $tries++;
+        } while ( is_wp_error($response) && $tries < 3 );
+        if ( is_wp_error( $response ) ) {
+            WCSSOT_Logger::error( 'The request to the "' . $endpoint . '" endpoint resulted in an error.' );
             /**
              * Allows 3rd parties to analyse api wp response errors.
              *
@@ -264,17 +268,17 @@ class WCSSOT_API_Manager {
              * @param string $method       The HTTP method to use for the request.
              * @param array $params        The list of parameters to add.
              */
-			do_action(
-			    'wcssot_api_manager_request_wp_error_action',
+            do_action(
+                'wcssot_api_manager_request_wp_error_action',
                 $response,
                 $data,
                 $endpoint,
                 $method,
                 $params
             );
-			throw new Exception( $response->get_error_message() );
-		}
-		$response_code = wp_remote_retrieve_response_code( $response );
+            throw new Exception( $response->get_error_message() );
+        }
+        $response_code = wp_remote_retrieve_response_code( $response );
 		/**
 		 * Filters the number of authentication tries.
 		 *
