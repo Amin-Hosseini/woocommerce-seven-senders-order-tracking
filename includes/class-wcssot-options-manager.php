@@ -155,6 +155,7 @@ class WCSSOT_Options_Manager {
 			add_action( 'admin_menu', [ $this, 'add_admin_menu' ] );
 			add_action( 'admin_init', [ $this, 'register_admin_settings' ] );
 			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_scripts' ] );
+            		add_filter( 'plugin_action_links' , [ $this, 'plugin_settings_link' ], 10, 2 );
 		}
 		/**
 		 * Fires after initialising the hooks.
@@ -164,6 +165,25 @@ class WCSSOT_Options_Manager {
 		 * @param WCSSOT_Options_Manager $wcssot_options_manager The current class object.
 		 */
 		do_action( 'wcssot_options_manager_after_initialise_hooks', $this );
+	}
+
+	/**
+	* Creates the Settings link within the Plugins page.
+	*
+	* @param array $links Links associated with the plugin.
+	* @param $file
+	*
+	* @return array $links Links associated with the plugin, after the Settings link is added.
+	*/
+	public function plugin_settings_link( $links, $file ) {
+		$plugin_dir_name = dirname( plugin_basename(__DIR__) );
+		if ( strpos( $file, $plugin_dir_name ) === false ) {
+			return $links;
+		}
+
+		array_unshift( $links, '<a href="' . esc_url( admin_url( 'admin.php' ) ) . '?page=wcssot">' . esc_html__( 'Settings', 'woocommerce-seven-senders-order-tracking' ) . '</a>' );
+
+		return $links;
 	}
 
 	/**
