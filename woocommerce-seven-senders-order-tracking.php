@@ -72,6 +72,19 @@ register_activation_hook( __FILE__, 'wcssot_install' );
  */
 function wcssot_init() {
 	if ( ! defined( 'WC_VERSION' ) || version_compare( WC_VERSION, '3.5.0' ) < 0 ) {
+        /**
+         * If the WooCommerce plugin is disabled, the notification will appear in the admin dashboard.
+         */
+        add_action( 'admin_notices', function() {
+            $class   = 'notice notice-warning';
+            $message = sprintf(
+                __(
+                    "To use the <strong>WooCommerce Seven Senders Order Tracking plugin</strong>, you must first enable the <strong>WooCommerce plugin</strong>.",
+                    "woocommerce-seven-senders-order-tracking"
+                )
+            );
+            printf( '<div class="%1$s"><p>%2$s</p></div>', $class, $message );
+        }, 20 );
 		return;
 	}
 	try {
